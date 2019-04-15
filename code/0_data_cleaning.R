@@ -2,7 +2,7 @@
 source("code/helper.R")
 
 # set global
-YEAR = 2018
+YEAR = 2019
 
 # data ----
 # call in data by pasting the directory to the filenames then reading in all .csv and bind them by row
@@ -31,19 +31,20 @@ scallops %>%
          year = ifelse(date<100, year-1, year), # fishing year
          Year = factor(year),
          Vessel = factor(ADFG),
-         FY = paste0(year, "/", year + 1)) %>%
+         FY = paste0(year, "/", sprintf('%02d', (year + 1) %% 100)),
+         dum = 1) %>%
   filter(area_swept>0) %>%
   mutate(rw_cpue = round_weight/dredge_hrs,
-         mw_cpue = meat_weight/dredge_hrs) -> scallops
-write_csv(scallops, paste0("output/", YEAR, "/scallops.csv"))
+         mw_cpue = meat_weight/dredge_hrs) %>% 
+  write_csv(paste0("output/", YEAR, "/scallops.csv"))
 
 # d16 ----
 scallops %>% 
-  filter(District=='D16') -> d16
-
-write_csv(d16, paste0("output/", YEAR, "/d16.csv"))
+  filter(District=='D16') %>%
+  write_csv(paste0("output/", YEAR, "/d16.csv"))
 
 # yak ----
+
 scallops %>% 
   filter(District=='YAK' | District=='D16') %>% 
   mutate(bed = case_when(set_lon > -138.3  ~ 6,
@@ -55,9 +56,8 @@ scallops %>%
                          set_lon <= -143.5   ~ 0),
          Bed = factor(bed),
          Bed = recode(Bed, "0"="B", "6"='D16')) %>% # change bed names (but keep 0-6 order)
-  filter(complete.cases(.)) -> yak
-
-write_csv(yak, paste0("output/", YEAR, "/yak.csv"))
+  filter(complete.cases(.)) %>% 
+  write_csv(paste0("output/", YEAR, "/yak.csv"))
 
 # ksh ----
 scallops %>% 
@@ -65,39 +65,36 @@ scallops %>%
   mutate(bed = case_when(set_lat > 58.35 ~ 1,
                          set_lat<= 58.35 ~ 2),
          Bed = factor(bed),
-         Bed = recode(Bed, "2"= '2-7')) -> ksh
-
-write_csv(ksh, paste0("output/", YEAR, "/ksh.csv"))
+         Bed = recode(Bed, "2"= '2-7')) %>% 
+  write_csv(paste0("output/", YEAR, "/ksh.csv"))
 
 # kne ----
 scallops %>% 
   filter(District=='KNE') %>% 
-  mutate(bed = ifelse(set_lat > 57.75, 1,
-                      ifelse(set_lat <= 57.8 & set_lat >= 57.17 & set_lon >= -151.95, 2, 
-                             ifelse(set_lat>57 & set_lat< 57.5 & set_lon > -151.8, 2, 
-                                    ifelse(set_lon < -152 & set_lat > 57.05, 3, 
-                                           ifelse(set_lat>56.8 & set_lat < 57.2 & set_lon > -152.5 & set_lon < -152.12, 3,
-                                                  ifelse(set_lon > -152.12 & set_lat<57.05 & set_lat> 56.9, 4, 
-                                                         ifelse(set_lat < 56.9 & set_lon > -152.5, 5, 6))))))),
-         Bed = factor(bed)) -> kne
-
-write_csv(kne, paste0("output/", YEAR, "/kne.csv"))
+  mutate(bed = case_when(set_lat > 57.75 ~ 1,
+                         set_lat <= 57.8 & set_lat >= 57.17 & set_lon >= -151.95 ~ 2, 
+                         set_lat>57 & set_lat< 57.5 & set_lon > -151.8 ~ 2, 
+                         set_lon < -152 & set_lat > 57.05 ~ 3, 
+                         set_lat>56.8 & set_lat < 57.2 & set_lon > -152.5 & set_lon < -152.12 ~ 3,
+                         set_lon > -152.12 & set_lat<57.05 & set_lat> 56.9 ~ 4, 
+                         set_lat < 56.9 & set_lon > -152.5 ~ 5, 
+                         TRUE ~ 6),
+         Bed = factor(bed)) %>% 
+  write_csv(paste0("output/", YEAR, "/kne.csv"))
 
 # ksw ----
 scallops %>% 
   filter(District=='KSW') %>% 
   mutate(bed = case_when(set_lat > 56.7 ~ 1,
                          set_lat < 56.7 ~ 2),
-         Bed = factor(bed)) -> ksw
-
-write_csv(ksw, paste0("output/", YEAR, "/ksw.csv"))
+         Bed = factor(bed)) %>% 
+  write_csv(paste0("output/", YEAR, "/ksw.csv"))
 
 # m ----
 
 scallops %>% 
-  filter(District=='UB') -> m
-
-write_csv(m, paste0("output/", YEAR, "/m.csv"))
+  filter(District=='UB') %>% 
+  write_csv(paste0("output/", YEAR, "/m.csv"))
 
 # o ----
 scallops %>% 
@@ -105,18 +102,16 @@ scallops %>%
   mutate(bed = case_when(set_lon > -168 & set_lat > 53.2 ~ 1,
                          set_lon < -168 & set_lat > 53.2 ~ 4,
                          set_lat < 53.2 ~ 2), # no idea where bed 3 is...
-         Bed = factor(bed)) -> o
-
-write_csv(o, paste0("output/", YEAR, "/o.csv"))
+         Bed = factor(bed)) %>% 
+  write_csv(paste0("output/", YEAR, "/o.csv"))
 
 # q ----
 
 scallops %>% 
   filter(District=='Q') %>% 
   #excluded samples outside of the main bed
-  filter(set_lon>-166) -> q
-
-write_csv(q, paste0("output/", YEAR, "/q.csv"))
+  filter(set_lon>-166) %>% 
+  write_csv(paste0("output/", YEAR, "/q.csv"))
 
 
 # ki ----
@@ -124,9 +119,8 @@ scallops %>%
   filter(District=='WKI'| District =='EKI') %>% 
   mutate(bed = case_when(District=='WKI' ~ "wk1",
                          District=='EKI' ~ 'ek1'),
-         Bed = factor(bed)) -> ki
-
-write_csv(ki, paste0("output/", YEAR, "/ki.csv"))
+         Bed = factor(bed)) %>% 
+  write_csv(paste0("output/", YEAR, "/ki.csv"))
 
 # ksem ----
 
@@ -137,46 +131,40 @@ write_csv(ki, paste0("output/", YEAR, "/ki.csv"))
 
 # shell height ----
 
-sh <- do.call(bind_rows,
-              lapply(gsub(" ", "",
-                          paste("./data/shell_height/",
-                                list.files("./data/shell_height/")), 
-                          fixed=TRUE), read_csv))
-
-write_csv(sh, paste0("output/", YEAR, "/sh.csv"))
+do.call(bind_rows,
+          lapply(gsub(" ", "",
+                      paste("./data/shell_height/",
+                            list.files("./data/shell_height/")), 
+                          fixed=TRUE), read_csv)) %>% 
+  write_csv(paste0("output/", YEAR, "/sh.csv"))
 
 # log book ----
-log <- do.call(bind_rows,
+do.call(bind_rows,
                lapply(gsub(" ", "",
                            paste("./data/log/",
                                  list.files("./data/log/")), 
-                           fixed=TRUE), read_csv))
-
-write_csv(log, paste0("output/", YEAR, "/log.csv"))
+                           fixed=TRUE), read_csv)) %>% 
+  write_csv(paste0("output/", YEAR, "/log.csv"))
 
 # crab ----
 
-crab <- do.call(bind_rows,
+do.call(bind_rows,
                 lapply(gsub(" ", "",paste("./data/crab_size/", 
-                                          list.files("./data/crab_size/")), fixed=TRUE), read_csv))
-
-write_csv(crab, paste0("output/", YEAR, "/crab.csv"))
+                                          list.files("./data/crab_size/")), fixed=TRUE), read_csv)) %>% 
+  write_csv(paste0("output/", YEAR, "/crab.csv"))
 
 # bycatch ----
 
-by <- do.call(bind_rows,
+do.call(bind_rows,
               lapply(gsub(" ", "",paste("./data/bycatch/", 
-                                        list.files("./data/bycatch/")), fixed=TRUE), read_csv))
-
-by %>% 
+                                        list.files("./data/bycatch/")), fixed=TRUE), read_csv)) %>%  
   mutate(set_date = as.Date(Set_Date, "%m-%d-%Y"),
          year = as.numeric(format(set_date, "%Y")),
          date = yday(set_date),
          year = ifelse(date<100, year-1, year),
          Year = factor(year),
-         Vessel = factor(ADFG)) -> by
-
-write_csv(by, paste0("output/", YEAR, "/by.csv"))
+         Vessel = factor(ADFG)) %>% 
+  write_csv(paste0("output/", YEAR, "/by.csv"))
 
 # age ----
 # this age data needs to be cleaned up and provide in a uniform framework from a database - not these individual files
@@ -195,7 +183,7 @@ ages14 %>%
   mutate(shell = factor(shell)) -> ages14
 
 # smartbind is from the gtools package
-ages<- smartbind(ages, ages14)
+ages <- smartbind(ages, ages14)
 
 #add 2015 data
 ages15 <- read.csv("data/age/2015ShellAgeData_5.10.16.csv")
@@ -222,6 +210,5 @@ ages %>%
          year = ifelse(date<100, year-1, year),
          Year = factor(year)) %>%
   mutate(Set_Date = format(Set_Date, format = "%Y-%m-%d")) %>%
-  select(-id, -aged_by, -date_aged, -stat_area, -code_let, -code_num, -shell_num) -> ages
-
-write_csv(ages, paste0("output/", YEAR, "/ages.csv"))
+  select(-id, -aged_by, -date_aged, -stat_area, -code_let, -code_num, -shell_num) %>% 
+  write_csv(paste0("output/", YEAR, "/ages.csv"))
