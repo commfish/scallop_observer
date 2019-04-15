@@ -4,7 +4,7 @@
 
 # NOTE Neither catch data nor catch output can be pushed to github due to confidentiality! 
 
-# last updated 2018-03
+# last updated 2018-08
 
 
 # load ----
@@ -17,11 +17,11 @@ library(mapproj)
 library(mgcv)
 library(zoo)
 library(gridExtra)
+# devtools::install_github("ben-williams/FNGr")
 library(FNGr)
 library(xtable)
 library(here)
 library(scales)
-library(xtable)
 
 theme_set(theme_sleek())
 
@@ -32,3 +32,4 @@ data('nepacLLhigh')
 
 nepacLLhigh %>% 
   dplyr::select(group = PID, POS = POS, long = X, lat = Y) -> ak
+rm(nepacLLhigh)
