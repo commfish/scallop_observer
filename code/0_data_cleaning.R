@@ -46,7 +46,7 @@ scallops %>%
 # yak ----
 
 scallops %>% 
-  filter(District=='YAK' | District=='D16') %>% 
+  filter(District=='YAK' | District=='D16' | District =='D') %>% 
   mutate(bed = case_when(set_lon > -138.3  ~ 6,
                          set_lon <= -138.3  & set_lon > -138.79 ~ 5,
                          set_lon <= -138.79 & set_lon > -140.1  ~ 4,
@@ -55,7 +55,7 @@ scallops %>%
                          set_lon <= -142.7  & set_lon > -143.5  ~ 1,
                          set_lon <= -143.5   ~ 0),
          Bed = factor(bed),
-         Bed = recode(Bed, "0"="B", "6"='D16')) %>% # change bed names (but keep 0-6 order)
+         Bed = recode(Bed, "0"="B")) %>% # change bed names (but keep 0-6 order)
   filter(complete.cases(.)) %>% 
   write_csv(paste0("output/", YEAR, "/yak.csv"))
 
@@ -81,6 +81,11 @@ scallops %>%
                          TRUE ~ 6),
          Bed = factor(bed)) %>% 
   write_csv(paste0("output/", YEAR, "/kne.csv"))
+
+# kse ----
+scallops %>% 
+  filter(District=='KSE') %>% 
+  write_csv(paste0("output/", YEAR, "/kse.csv"))
 
 # ksw ----
 scallops %>% 
