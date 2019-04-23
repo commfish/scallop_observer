@@ -1,10 +1,10 @@
 # Helper file for scallop observer summary
-# Ben Williams ben.williams@alaska.gov
+# ben.williams@alaska.gov
 
 
-# NOTE Neither catch data nor catch output can be pushed to github due to confidentiality! 
+# NOTE: Neither catch data nor catch output can be pushed to github due to confidentiality! 
 
-# last updated 2018-08
+# last updated 2019-04
 
 
 # load ----
