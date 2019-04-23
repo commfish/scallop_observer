@@ -35,27 +35,28 @@ scallops %>%
          dum = 1) %>%
   filter(area_swept>0) %>%
   mutate(rw_cpue = round_weight/dredge_hrs,
-         mw_cpue = meat_weight/dredge_hrs) %>% 
-  write_csv(paste0("output/", YEAR, "/scallops.csv"))
+         mw_cpue = meat_weight/dredge_hrs,
+         District = ifelse(District=='D16' | District =='D', 'YAK', District)) -> scallops 
+  
+write_csv(scallops, paste0("output/", YEAR, "/scallops.csv"))
 
 # d16 ----
-scallops %>% 
-  filter(District=='D16') %>%
-  write_csv(paste0("output/", YEAR, "/d16.csv"))
+# scallops %>% 
+#   filter(District=='D16') %>%
+#   write_csv(paste0("output/", YEAR, "/d16.csv"))
 
 # yak ----
 
 scallops %>% 
-  filter(District=='YAK' | District=='D16' | District =='D') %>% 
-  mutate(bed = case_when(set_lon > -138.3  ~ 6,
-                         set_lon <= -138.3  & set_lon > -138.79 ~ 5,
+  filter(District=='YAK' | District=='D16' | District =='D') %>%
+  mutate(bed = case_when(set_lon <= -138.3  & set_lon > -138.79 ~ 5,
                          set_lon <= -138.79 & set_lon > -140.1  ~ 4,
                          set_lon <= -140.1  & set_lon > -142.15 ~ 3,
                          set_lon <= -142.15 & set_lon > -142.7  ~ 2,
                          set_lon <= -142.7  & set_lon > -143.5  ~ 1,
-                         set_lon <= -143.5   ~ 0),
-         Bed = factor(bed),
-         Bed = recode(Bed, "0"="B")) %>% # change bed names (but keep 0-6 order)
+                         set_lon <= -143.5 ~ 0,
+                         TRUE ~ 6),
+         District = 'YAK') %>% 
   filter(complete.cases(.)) %>% 
   write_csv(paste0("output/", YEAR, "/yak.csv"))
 
