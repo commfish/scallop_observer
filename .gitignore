@@ -2,6 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+notes
 data
 output
-*.Rproj
+figs
+models
+safe_figs
+tables
+
+*.pdf
