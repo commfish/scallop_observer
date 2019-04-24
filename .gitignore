@@ -9,5 +9,5 @@ figs
 models
 safe_figs
 tables
-
+*.html
 *.pdf
