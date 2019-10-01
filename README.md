@@ -13,7 +13,7 @@ General questions about the data should be directed to the scallop observer coor
 
  - All functions begin with a `f_`
  - snake_case with underscores is used for all naming conventions
- - 
+ - a capital words are factors 
  
  Process
  
