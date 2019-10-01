@@ -16,7 +16,7 @@ values <- c('2018'='#2b8cbebb','2017'='#54278840','2016'='#998ec340',
 breaks <- as.character((YEAR-1):2009) # define breaks for plotting
 
 # Append the newest GHL to the end of each area
-yak_ghl = data.frame(ghl=c(rep(160000,3),rep(120000,5), 140000, 145000))
+yak_ghl = data.frame(ghl=c(rep(185000,3),rep(145000,4), 145000, 145000, 145000))
 ki_ghl = data.frame(ghl = c(20000,8500,8500,6300, 6300, 6300))
 ksh_ghl = data.frame(ghl=c(170000,170000,170000,135000,105000,105000,75000, 25000, 25000, 25000))
 ksw_ghl = data.frame(ghl=c(rep(25000,8), 30000))
@@ -27,11 +27,16 @@ q_ghl = data.frame(ghl=c(rep(50000,6),7500,7500,7500, 7500))
 m_ghl = data.frame(ghl=c(rep(15000, 6), 22500))
 
 # data -------------------------------------------------------------------------
-read_csv(paste0('output/', YEAR,'/sh.csv')) -> sh 
+read_csv(paste0('output/', YEAR,'/sh.csv')) %>% 
+  mutate(District = ifelse(District=='D' | District=='D16', 'YAK', District)) -> sh 
+
 read_csv(paste0('output/', YEAR,'/by.csv')) %>% 
   mutate(Year = factor(year),
          Vessel = factor(ADFG),
-         set_date = ymd(set_date)) -> by
+         set_date = ymd(set_date)) %>% 
+  mutate(District = ifelse(District=='D' | District=='D16', 'YAK', District)) -> by
+
+read_csv(paste0('output/', YEAR,'/shmw.csv')) -> shmw
 
 read_csv(paste0('output/',YEAR,'/scallops.csv')) %>% 
   mutate(District = ifelse(District=='D' | District=='D16', 'YAK', District)) -> scallops
@@ -42,67 +47,71 @@ read_csv(paste0('output/',YEAR,'/yak.csv')) %>%
          FY = factor(FY),
          Bed = factor(bed, levels = c('0','1','2','3','4','5','6')),
          Bed = recode(Bed, "0"="B"),
-         dum=1) -> yak
+         dum=1,
+         set_date = ymd(set_date)) -> yak
 
 read_csv(paste0('output/',YEAR,'/ki.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
          Bed = factor(Bed, levels = c('ek1', 'wk1')),
-         dum=1) -> ki
+         dum=1,
+         set_date = ymd(set_date)) -> ki
 
 read_csv(paste0('output/',YEAR,'/ksh.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
          Bed = factor(Bed, levels = c('1', '2-7')),
-         dum=1) -> ksh
+         dum=1,
+         set_date = ymd(set_date)) -> ksh
 
 read_csv(paste0('output/',YEAR,'/ksw.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
          Bed = factor(Bed, levels = c('1', '2')),
-         dum=1) -> ksw
+         dum=1,
+         set_date = ymd(set_date)) -> ksw
 
 read.csv(paste0('output/',YEAR,'/kne.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
          Bed = factor(Bed, levels = c('1', '2', '3', '4', '5', '6')),
-         dum=1) -> kne
+         dum=1,
+         set_date = ymd(set_date)) -> kne
 
 read.csv(paste0('output/',YEAR,'/kse.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
-         dum=1) -> kse
+         dum=1,
+         set_date = ymd(set_date)) -> kse
 
 
 read_csv(paste0('output/',YEAR,'/m.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
-         dum=1) -> m
+         dum=1,
+         set_date = ymd(set_date)) -> m
 
 read_csv(paste0('output/',YEAR,'/o.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
          dum=1, 
-         Bed = factor(bed)) -> o
+         Bed = factor(bed),
+         set_date = ymd(set_date)) -> o
 
 read_csv(paste0('output/',YEAR,'/q.csv')) %>% 
   mutate(Year=factor(Year),
          Vessel = factor(Vessel),
          FY = factor(FY),
-         dum=1) -> q
+         dum=1,
+         set_date = ymd(set_date)) -> q
 
-read_csv(paste0('output/',YEAR,'/kse.csv')) %>% 
-  mutate(Year=factor(Year),
-         Vessel = factor(Vessel),
-         FY = factor(FY),
-         dum=1) -> kse
 
 xaxis <- tickr(scallops, year, 10)
 
@@ -296,15 +305,15 @@ new_m %>%
   mutate(fit_rw = predict(m_rw, ., type = 'response')) -> new_m
 
 # std tables -----------------------------------------------------------------------
-f_std_cpue_tbl(yak_fit, yak_ghl, YEAR)
-f_std_cpue_tbl(ki_fit, ki_ghl, YEAR)
-f_std_cpue_tbl(ksh_fit, ksh_ghl, YEAR)
-f_std_cpue_tbl(ksw_fit, ksw_ghl, YEAR)
-f_std_cpue_tbl(kne_fit, kne_ghl, YEAR)
-f_std_cpue_tbl(kse_fit, kse_ghl, YEAR)
-f_std_cpue_tbl(o_fit, o_ghl, YEAR)
-f_std_cpue_tbl(q_fit, q_ghl, YEAR)
-f_std_cpue_tbl(m_fit, m_ghl, YEAR)
+f_std_cpue_tbl(yak, yak_fit, yak_ghl)
+f_std_cpue_tbl(ki, ki_fit, ki_ghl)
+f_std_cpue_tbl(ksh, ksh_fit, ksh_ghl)
+f_std_cpue_tbl(ksw, ksw_fit, ksw_ghl)
+f_std_cpue_tbl(kne, kne_fit, kne_ghl)
+f_std_cpue_tbl(kse, kse_fit, kse_ghl)
+f_std_cpue_tbl(o, o_fit, o_ghl)
+f_std_cpue_tbl(q, q_fit, q_ghl)
+f_std_cpue_tbl(m, m_fit, m_ghl)
 
 # figures ----------------------------------------------------------------------
 # yak ----
@@ -317,32 +326,33 @@ fig_rw_cpue(yak_fit)
 fig_rw_vessel(yak_fit)
 fig_roll_rw(yak_fit)
 fig_sh(yak)
-fig_sh_year(yak, YEAR)
+fig_sh_year(yak)
 fig_rd(yak)
 fig_discard(yak)
 fig_discard_rat(yak)
 fig_bycatch(yak)
 fig_bycatch_rat(yak)
 # fig_clap(yak)
+fig_shmw(yak)
 
 # ki ----
 fig_mw_cpue(ki)
 fig_rw_cpue(ki)
 
 fig_mw_cpue(ki_fit)
-fig_rw_cpue(kik_fit)
+fig_rw_cpue(ki_fit)
 
 fig_roll_rw(ki_fit)
 fig_rw_vessel(ki_fit)
 fig_sh(ki)
-fig_sh_year(ki, YEAR)
+fig_sh_year(ki)
 fig_rd(ki)
 fig_discard(ki)
 fig_discard_rat(ki)
 fig_bycatch(ki)
 fig_bycatch_rat(ki)
 # fig_clap(ki)
-
+# fig_shmw(ki)
 
 # ksh ----
 fig_mw_cpue(ksh)
@@ -354,13 +364,14 @@ fig_rw_cpue(ksh_fit)
 fig_roll_rw(ksh_fit)
 fig_rw_vessel(ksh_fit)
 fig_sh(ksh)
-fig_sh_year(ksh, YEAR)
+fig_sh_year(ksh)
 fig_rd(ksh)
 fig_discard(ksh)
 fig_discard_rat(ksh)
 fig_bycatch(ksh)
 fig_bycatch_rat(ksh)
 # fig_clap(ksh)
+fig_shmw(ksh)
 
 # kne ----
 fig_mw_cpue(kne)
@@ -372,13 +383,14 @@ fig_rw_cpue(kne_fit)
 fig_roll_rw(kne_fit)
 fig_rw_vessel(kne_fit)
 fig_sh(kne)
-fig_sh_year(kne, YEAR)
+fig_sh_year(kne)
 fig_rd(kne)
 fig_discard(kne)
 fig_discard_rat(kne)
 fig_bycatch(kne)
 fig_bycatch_rat(kne)
 # fig_clap(kne)
+fig_shmw(kne)
 
 # kse ----
 fig_mw_cpue(kse)
@@ -387,36 +399,36 @@ fig_rw_cpue(kse)
 fig_mw_cpue(kse_fit)
 fig_rw_cpue(kse_fit)
 
-fig_roll_rw(kse_fit)
+# fig_roll_rw(kse_fit)
 # fig_rw_vessel(kse_fit)
 fig_sh(kse)
-fig_sh_year(kse, YEAR)
+fig_sh_year(kse)
 fig_rd(kse)
 fig_discard(kse)
 fig_discard_rat(kse)
 fig_bycatch(kse)
 fig_bycatch_rat(kse)
 # fig_clap(kse)
-
+fig_shmw(kse)
 
 # ksw ----
 fig_mw_cpue(ksw)
 fig_rw_cpue(ksw)
 
-fig_mw_cpue(kswk_fit)
+fig_mw_cpue(ksw_fit)
 fig_rw_cpue(ksw_fit)
 
-fig_rw_fit(ksw_fit)
 fig_roll_rw(ksw_fit)
 fig_rw_vessel(ksw_fit)
 fig_sh(ksw)
-fig_sh_year(ksw, YEAR)
+fig_sh_year(ksw)
 fig_rd(ksw)
 fig_discard(ksw)
 fig_discard_rat(ksw)
 fig_bycatch(ksw)
 fig_bycatch_rat(ksw)
 # fig_clap(ksw)
+fig_shmw(ksw)
 
 # o ----
 fig_mw_cpue(o)
@@ -428,13 +440,14 @@ fig_rw_cpue(o_fit)
 fig_roll_rw(o_fit)
 fig_rw_vessel(o_fit)
 fig_sh(o)
-fig_sh_year(o, YEAR)
+fig_sh_year(o)
 fig_rd(o)
 fig_discard(o)
 fig_discard_rat(o)
 fig_bycatch(o)
 fig_bycatch_rat(o)
 # fig_clap(o)
+fig_shmw(o)
 
 # q ----
 fig_mw_cpue(q)
@@ -446,14 +459,14 @@ fig_rw_cpue(q_fit)
 fig_roll_rw(q_fit)
 fig_rw_vessel(q_fit)
 fig_sh(q)
-fig_sh_year(q, YEAR)
+fig_sh_year(q)
 fig_rd(q)
 fig_discard(q)
 fig_discard_rat(q)
 fig_bycatch(q)
 fig_bycatch_rat(q)
 # fig_clap(q)
-
+fig_shmw(q)
 
 # m ----
 fig_mw_cpue(m)
@@ -465,10 +478,12 @@ fig_rw_cpue(m_fit)
 fig_roll_rw(m_fit)
 fig_rw_vessel(m_fit)
 fig_sh(m)
-fig_sh_year(m, YEAR)
+fig_sh_year(m)
 fig_rd(m)
 fig_discard(m)
 fig_discard_rat(m)
 fig_bycatch(m)
 fig_bycatch_rat(m)
 # fig_clap(m)
+# fig_shmw(m)
+

@@ -218,3 +218,25 @@ ages %>%
   mutate(Set_Date = format(Set_Date, format = "%Y-%m-%d")) %>%
   select(-id, -aged_by, -date_aged, -stat_area, -code_let, -code_num, -shell_num) %>% 
   write_csv(paste0("output/", YEAR, "/ages.csv"))
+
+# shell height/meat weight ----
+
+read_csv(paste0('data/meat_weight/2018ScallopObsSHMWData.csv')) %>% 
+  mutate(set_date = mdy(set_date))  %>% 
+  left_join(scallops, .) %>% 
+  filter(year>=2018) %>% filter(!is.na(meat_weight_g)) %>% 
+  write_csv(paste0("output/", YEAR, "/shmw.csv"))
+
+  ggplot(aes(shell_height, meat_weight_g, color = District)) + geom_point() +
+  stat_smooth(method = 'gam', formula = y~s(x, k = 4))
+
+read_csv(paste0('data/meat_weight/2018ScallopObsSHMWData.csv')) %>% 
+  mutate(set_date = mdy(set_date))  %>% 
+  left_join(scallops, .) %>% 
+  filter(year>=2018) %>% filter(!is.na(meat_weight_g)) %>% 
+  ggplot(aes(date, meat_weight_g, color = District)) + geom_point() +
+  stat_smooth(method = 'gam', formula = y~s(x, k = 4))
+
+  write_csv(paste0("output/", YEAR, "/shmw.csv"))
+
+

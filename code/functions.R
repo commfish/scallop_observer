@@ -103,11 +103,13 @@ f_gam_mw <- function(data){
   adj <- mean(data$mw_cpue, na.rm = T) * 0.10
   
   if('Bed' %in% colnames(data)){
+    
     fit <- bam(mw_cpue + adj ~ s(depth, k=4, by = Bed) + 
                  te(set_lon, set_lat, by = Bed) + Year +
                  Bed + s(Vessel, bs='re', by=dum), 
                data=data, gamma=1.4, family=Gamma(link=log))
   } else {
+    
     fit <- bam(mw_cpue + adj ~ s(depth, k=4) + 
                  te(set_lon, set_lat) + Year + 
                  s(Vessel, bs='re', by=dum), 
@@ -123,35 +125,36 @@ f_gam_rw <- function(data){
   if('Bed' %in% colnames(data)){
     fit <- bam(rw_cpue + adj ~ s(depth, k=4, by = Bed) + 
                  te(set_lon, set_lat, by = Bed) + Year + 
-                 Bed + s(Vessel, bs='re', by=dum), data=data, gamma=1.4, family=Gamma(link=log))
+                 Bed + Vessel, data=data, gamma=1.4, family=Gamma(link=log))
   } else {
     fit <- bam(rw_cpue + adj ~ s(depth, k=4) + 
                  te(set_lon, set_lat) + Year + 
-                 s(Vessel, bs='re', by=dum), data=data, gamma=1.4, family=Gamma(link=log))
+                 Vessel, data=data, gamma=1.4, family=Gamma(link=log))
   }
   return(fit)
 }
 
-f_std_cpue_tbl <- function(data_fit, ghl, YEAR){
+f_std_cpue_tbl <- function(data, data_fit, ghl){
   
-  y = deparse(substitute(data))
+  y = deparse(substitute(ksw))
+  adj <- mean(data$rw_cpue, na.rm = T) * 0.10
   
   data_fit %>% 
-    group_by(year, FY) %>% 
-    summarise('std cpue' = mean(fit_rw),
+    group_by(FY) %>% 
+    summarise('std cpue' = mean(fit_rw - adj, na.rm = T),
               #m = sum(meat_weight), 
-              r = sum(round_weight), 
-              h = sum(dredge_hrs), 
+              r = sum(round_weight, na.rm = T), 
+              h = sum(dredge_hrs, na.rm = T), 
               n=length(dredge_hrs), 
               #c1 = m/h, 
               c2 = r/h)  %>% 
     bind_cols(ghl) %>% 
-    dplyr::select(FY, ghl, r, h, n, c2, -year, `std cpue`) %T>%
+    dplyr::select(FY, ghl, r, h, n, c2, `std cpue`) %T>%
     write_csv(paste0('tables/', YEAR, '/', y, '_std_cpue_tbl.csv'))
   
 }
 
-pred_data <- function(data){
+pred_data <- function(data, dum = 0){
   
   y = deparse(substitute(data))
   
@@ -165,8 +168,9 @@ pred_data <- function(data){
                                   bed=='wk1' ~ mode(data$set_lon[data$bed=='wk1'])),
               set_lat = case_when(bed=='ek1' ~ mode(data$set_lat[data$bed=='ek1']),
                                   bed=='wk1' ~ mode(data$set_lat[data$bed=='wk1'])),
-              Year = factor(year)) %>% drop_na %>% 
-        mutate(Bed = factor(bed), dum = 1)
+              Year = factor(year)) %>% 
+      drop_na %>% 
+        mutate(Bed = factor(bed), dum = dum)
      } else if('Bed' %in% colnames(data) && y=='ksh'){
        expand.grid(Vessel = unique(data$Vessel), 
                    year = unique(data$year), bed = 1:2) %>% 
@@ -180,32 +184,32 @@ pred_data <- function(data){
          drop_na %>% 
          mutate( Bed = case_when(bed==1 ~ '1',
                                  bed==2 ~ '2-7'),
-                 dum = 1)
+                 dum = dum)
        } else if('Bed' %in% colnames(data) && y=='yak'){ 
        
   expand.grid(Vessel = unique(data$Vessel), 
               year = unique(data$year), bed = 0:6) %>% 
-    mutate(depth = case_when(bed==0 ~ mode(data$depth[data$bed==0]),
-                                bed==1 ~ mode(data$depth[data$bed==1]),
-                                bed==2 ~ mode(data$depth[data$bed==2]),
-                                bed==3 ~ mode(data$depth[data$bed==3]),
-                                bed==4 ~ mode(data$depth[data$bed==4]),
-                                bed==5 ~ mode(data$depth[data$bed==5]),
-                                bed==6 ~ mode(data$depth[data$bed==6])),
-              set_lon = case_when(bed==0 ~ mode(data$set_lon[data$bed==0]),
-                                  bed==1 ~ mode(data$set_lon[data$bed==1]),
-                                  bed==2 ~ mode(data$set_lon[data$bed==2]),
-                                  bed==3 ~ mode(data$set_lon[data$bed==3]),
-                                  bed==4 ~ mode(data$set_lon[data$bed==4]),
-                                  bed==5 ~ mode(data$set_lon[data$bed==5]),
-                                  bed==6 ~ mode(data$set_lon[data$bed==6])),
-              set_lat = case_when(bed==0 ~ mode(data$set_lat[data$bed==0]),
-                                  bed==1 ~ mode(data$set_lat[data$bed==1]),
-                                  bed==2 ~ mode(data$set_lat[data$bed==2]),
-                                  bed==3 ~ mode(data$set_lat[data$bed==3]),
-                                  bed==4 ~ mode(data$set_lat[data$bed==4]),
-                                  bed==5 ~ mode(data$set_lat[data$bed==5]),
-                                  bed==6 ~ mode(data$set_lat[data$bed==6])),
+    mutate(depth = case_when(bed==0 ~ FNGr::mode(data$depth[data$bed==0]),
+                                bed==1 ~ FNGr::mode(data$depth[data$bed==1]),
+                                bed==2 ~ FNGr::mode(data$depth[data$bed==2]),
+                                bed==3 ~ FNGr::mode(data$depth[data$bed==3]),
+                                bed==4 ~ FNGr::mode(data$depth[data$bed==4]),
+                                bed==5 ~ FNGr::mode(data$depth[data$bed==5]),
+                                bed==6 ~ FNGr::mode(data$depth[data$bed==6])),
+              set_lon = case_when(bed==0 ~ FNGr::mode(data$set_lon[data$bed==0]),
+                                  bed==1 ~ FNGr::mode(data$set_lon[data$bed==1]),
+                                  bed==2 ~ FNGr::mode(data$set_lon[data$bed==2]),
+                                  bed==3 ~ FNGr::mode(data$set_lon[data$bed==3]),
+                                  bed==4 ~ FNGr::mode(data$set_lon[data$bed==4]),
+                                  bed==5 ~ FNGr::mode(data$set_lon[data$bed==5]),
+                                  bed==6 ~ FNGr::mode(data$set_lon[data$bed==6])),
+              set_lat = case_when(bed==0 ~ FNGr::mode(data$set_lat[data$bed==0]),
+                                  bed==1 ~ FNGr::mode(data$set_lat[data$bed==1]),
+                                  bed==2 ~ FNGr::mode(data$set_lat[data$bed==2]),
+                                  bed==3 ~ FNGr::mode(data$set_lat[data$bed==3]),
+                                  bed==4 ~ FNGr::mode(data$set_lat[data$bed==4]),
+                                  bed==5 ~ FNGr::mode(data$set_lat[data$bed==5]),
+                                  bed==6 ~ FNGr::mode(data$set_lat[data$bed==6])),
               Year = factor(year)) %>% 
     drop_na %>% 
     mutate( Bed = case_when(bed==0 ~ 'B',
@@ -215,7 +219,7 @@ pred_data <- function(data){
                             bed==4 ~ '4',
                             bed==5 ~ '5',
                             bed==6 ~ '6'),
-            dum = 1)
+            dum = dum)
   
    } else if('Bed' %in% colnames(data)){
      expand.grid(Vessel = unique(data$Vessel), 
@@ -244,10 +248,11 @@ pred_data <- function(data){
               Year = factor(year)) %>% 
        drop_na %>% 
        mutate( Bed = factor(bed),
-               dum = 1)
+               dum = dum)
      } else {
     expand.grid(Vessel = unique(data$Vessel), 
-                dum = 1, year = unique(data$year)) %>% 
+                dum = dum, 
+                year = unique(data$year)) %>% 
       mutate(   depth = mode(data$depth),
                 set_lon = mode(data$set_lon),
                 set_lat = mode(data$set_lat),
@@ -260,116 +265,33 @@ fig_mw_cpue <- function(data){
   
   y = deparse(substitute(data))
   
-  filter(data, year>(YEAR-6)) -> data
+  filter(data, year>(YEAR-6)) %>% 
+    droplevels(.) -> data
   
-  data %>% 
-    ggplot(aes(mw_cpue, fill=Year, color=Year)) + 
-    geom_density() + 
-    scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
-    scale_color_manual(values=values, breaks=levels(data$Year), name='') +
-    guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
-    theme(legend.key = element_blank(),
-          legend.position = c(0.8, 0.85),
-          legend.background = element_rect(fill = "#ffffffaa", colour = NA),
-          legend.key.height=unit(.6,'line')) +
-    xlab('meat wt cpue') -> a
-  
-  data %>% 
-    ggplot(aes(mw_cpue, fill=Year, color=Year)) + 
-    geom_histogram(bins = 50) +
-    scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
-    scale_color_manual(values=values, breaks=levels(data$Year), name='') +
-    guides(fill=FALSE, color=FALSE) + 
-    theme(legend.key = element_blank()) +
-    xlab('meat wt cpue') -> b
-  
-  if(substr(y, 4, 7) != '_fit'){
-    if('Bed' %in% colnames(data)){
+  if(substr(y, nchar(y)-3, nchar(y)) != '_fit'){
     
-    a + 
-      facet_grid(Bed~., scales='free_y') -> a
-    b + 
-      facet_grid(Bed~., scales='free_y') -> b
+    data %>% 
+      ggplot(aes(mw_cpue, fill=Year, color=Year)) + 
+      geom_density() + 
+      scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+      scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+      guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
+      theme(legend.key = element_blank(),
+            legend.position = c(0.8, 0.85),
+            legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+            legend.key.height=unit(.6,'line')) +
+      xlab('meat wt cpue') -> a
     
-    x <- grid.arrange(a, b, ncol=2)
+    data %>% 
+      ggplot(aes(mw_cpue, fill=Year, color=Year)) + 
+      geom_histogram(bins = 50) +
+      scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+      scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+      guides(fill=FALSE, color=FALSE) + 
+      theme(legend.key = element_blank()) +
+      xlab('meat wt cpue') -> b
     
-      ggsave(paste0('figs/', YEAR, '/', y, '_mw_cpue.png'), plot = x, height = 8.5, 
-             width=6.5, units='in')
-      
-  } else {
-    
-    x <- grid.arrange(a, b, ncol=2)
-    
-    ggsave(paste0('figs/', YEAR, '/', y, '_mw_cpue.png'), plot = x, height = 4.5, 
-           width=6.5, units='in')
-    
-  }
-  }
-  
-    
-    
-    if(substr(y, 4, 7) == '_fit'){
-      if('Bed' %in% colnames(data)){
-        
-        a + 
-          xlab('standardized meat wt cpue') +
-          facet_grid(Bed~., scales='free_y') -> a
-        b + 
-          xlab('standardized meat wt cpue') +
-          facet_grid(Bed~., scales='free_y') -> b
-        
-        x <- grid.arrange(a, b, ncol=2)
-        
-        ggsave(paste0('figs/', YEAR, '/', y, '_mw.png'), plot = x, height = 8.5, 
-               width=6.5, units='in')
-        
-      } else {
-        
-        a + 
-          xlab('standardized meat wt cpue') -> a
-        
-        b + 
-          xlab('standardized meat wt cpue')-> b
-        
-        x <- grid.arrange(a, b, ncol=2)
-        
-        ggsave(paste0('figs/', YEAR, '/', y, '_mw.png'), plot = x, height = 4.5, 
-               width=6.5, units='in')
-        
-      } 
-    }
-  x
-}
-      
-fig_rw_cpue <- function(data){
-  
-  y = deparse(substitute(data))
-  
-  filter(data, year>(YEAR-6)) -> data
-  
-  data %>% 
-    ggplot(aes(rw_cpue, fill=Year, color=Year)) + 
-    geom_density() + 
-    scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
-    scale_color_manual(values=values, breaks=levels(data$Year), name='') +
-    guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
-    theme(legend.key = element_blank(),
-          legend.position = c(0.8, 0.85),
-          legend.background = element_rect(fill = "#ffffffaa", colour = NA),
-          legend.key.height=unit(.6,'line')) +
-    xlab('meat wt cpue') -> a
-  
-  data %>% 
-    ggplot(aes(rw_cpue, fill=Year, color=Year)) + 
-    geom_histogram(bins = 50) +
-    scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
-    scale_color_manual(values=values, breaks=levels(data$Year), name='') +
-    guides(fill=FALSE, color=FALSE) + 
-    theme(legend.key = element_blank()) +
-    xlab('meat wt cpue') -> b
-  
-  if(substr(y, 4, 7) != '_fit'){
-    if('Bed' %in% colnames(data)){
+    if('Bed' %in% colnames(data) & length(unique(data$Bed))>1){
       
       a + 
         facet_grid(Bed~., scales='free_y') -> a
@@ -378,29 +300,142 @@ fig_rw_cpue <- function(data){
       
       x <- grid.arrange(a, b, ncol=2)
       
-      ggsave(paste0('figs/', YEAR, '/', y, '_rw_cpue.png'), plot = x, height = 8.5, 
+      ggsave(paste0('figs/', YEAR, '/', y, '_mw_cpue.png'), plot = x, height = 8.5, 
              width=6.5, units='in')
       
     } else {
       
       x <- grid.arrange(a, b, ncol=2)
       
-      ggsave(paste0('figs/', YEAR, '/', y, '_rw_cpue.png'), plot = x, height = 4.5, 
+      ggsave(paste0('figs/', YEAR, '/', y, '_mw_cpue.png'), plot = x, height = 4.5, 
              width=6.5, units='in')
       
     }
-  }
-  
-  
-  
-  if(substr(y, 4, 7) == '_fit'){
-    if('Bed' %in% colnames(data)){
+  } else {
+    
+    data %>% 
+      ggplot(aes(fit_mw, fill=Year, color=Year)) + 
+      geom_density() + 
+      scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+      scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+      guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
+      theme(legend.key = element_blank(),
+            legend.position = c(0.8, 0.85),
+            legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+            legend.key.height=unit(.6,'line')) +
+      xlab('standardized meat wt cpue')  -> a
+    
+    data %>% 
+      ggplot(aes(fit_mw, fill=Year, color=Year)) + 
+      geom_histogram(bins = 50) +
+      scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+      scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+      guides(fill=FALSE, color=FALSE) + 
+      theme(legend.key = element_blank()) +
+      xlab('standardized meat wt cpue') -> b
+    
+    if('Bed' %in% colnames(data) & length(unique(data$Bed))>1){
       
       a + 
-        xlab('standardized meat wt cpue') +
+         facet_grid(Bed~., scales='free_y') -> a
+      b + 
+        facet_grid(Bed~., scales='free_y') -> b
+      
+      x <- grid.arrange(a, b, ncol=2)
+      
+      ggsave(paste0('figs/', YEAR, '/', y, '_mw.png'), plot = x, height = 8.5, 
+             width=6.5, units='in')
+      
+    } else {
+      
+      x <- grid.arrange(a, b, ncol=2)
+      
+      ggsave(paste0('figs/', YEAR, '/', y, '_mw.png'), plot = x, height = 4.5, 
+             width=6.5, units='in')
+      
+    } 
+  }
+  x
+}
+      
+fig_rw_cpue <- function(data){
+  
+  y = deparse(substitute(data))
+  
+  filter(data, year>(YEAR-6)) %>% 
+    droplevels(.) -> data
+  
+  if(substr(y, nchar(y)-3, nchar(y)) != '_fit'){
+  
+    data %>% 
+      ggplot(aes(rw_cpue, fill=Year, color=Year)) + 
+      geom_density() + 
+      scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+      scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+      guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
+      theme(legend.key = element_blank(),
+            legend.position = c(0.8, 0.85),
+            legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+            legend.key.height=unit(.6,'line')) +
+      xlab('round wt cpue') -> a
+    
+    data %>% 
+      ggplot(aes(rw_cpue, fill=Year, color=Year)) + 
+      geom_histogram(bins = 50) +
+      scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+      scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+      guides(fill=FALSE, color=FALSE) + 
+      theme(legend.key = element_blank()) +
+      xlab('round wt cpue') -> b
+  
+      if('Bed' %in% colnames(data) & length(unique(data$Bed))>1){
+        
+        a + 
+          facet_grid(Bed~., scales='free_y') -> a
+        b + 
+          facet_grid(Bed~., scales='free_y') -> b
+        
+        x <- grid.arrange(a, b, ncol=2)
+        
+        ggsave(paste0('figs/', YEAR, '/', y, '_rw_cpue.png'), plot = x, height = 8.5, 
+               width=6.5, units='in')
+        
+      } else {
+        
+        x <- grid.arrange(a, b, ncol=2)
+        
+        ggsave(paste0('figs/', YEAR, '/', y, '_rw_cpue.png'), plot = x, height = 4.5, 
+               width=6.5, units='in')
+        
+      }
+    } else {
+      
+      data %>% 
+        ggplot(aes(fit_rw, fill=Year, color=Year)) + 
+        geom_density() + 
+        scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+        scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+        guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
+        theme(legend.key = element_blank(),
+              legend.position = c(0.8, 0.85),
+              legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+              legend.key.height=unit(.6,'line')) +
+        xlab('standardized round wt cpue') -> a
+      
+      data %>% 
+        ggplot(aes(fit_rw, fill=Year, color=Year)) + 
+        geom_histogram(bins = 50) +
+        scale_fill_manual(values=values, breaks=levels(data$Year), name='') +
+        scale_color_manual(values=values, breaks=levels(data$Year), name='') +
+        guides(fill=FALSE, color=FALSE) + 
+        theme(legend.key = element_blank()) +
+        xlab('standardized round wt cpue') -> b
+      
+    if('Bed' %in% colnames(data) & length(unique(data$Bed))>1){
+      
+      a + 
         facet_grid(Bed~., scales='free_y') -> a
       b + 
-        xlab('standardized meat wt cpue') +
         facet_grid(Bed~., scales='free_y') -> b
       
       x <- grid.arrange(a, b, ncol=2)
@@ -409,12 +444,6 @@ fig_rw_cpue <- function(data){
              width=6.5, units='in')
       
     } else {
-      
-      a + 
-        xlab('standardized meat wt cpue') -> a
-      
-      b + 
-        xlab('standardized meat wt cpue')-> b
       
       x <- grid.arrange(a, b, ncol=2)
       
@@ -427,12 +456,13 @@ fig_rw_cpue <- function(data){
 }
 
 fig_roll_rw <- function(fit){
-  y = deparse(substitute(fit))
   
+  y = deparse(substitute(fit))
   
   adj <- mean(fit$rw_cpue, na.rm = T) * 0.10
   
   if('Bed' %in% colnames(fit)){
+
   fit %>%
     mutate(mean = mean(fit_rw - adj, na.rm = T),
            last5 = mean(.$fit_rw[.$year>(YEAR-5)] - adj, na.rm=T)) %>% 
@@ -467,7 +497,7 @@ fig_roll_rw <- function(fit){
       ylab('Standardized round wt CPUE') -> x
   }
   
-  ggsave(paste0('figs/', YEAR, '/', y, '_roll_rw.png'), plot=x, height=5,
+  ggsave(paste0('figs/', YEAR, '/', y, '_roll_rw.png'), plot=x, height=4.5,
          width=6.5, units='in')
   x
 }
@@ -479,70 +509,60 @@ fig_rw_vessel <- function(data){
   ggplot(data, aes(Year, fit_rw, fill=Vessel)) + 
     geom_boxplot(width=.35) + 
     ylab('Standardized CPUE') -> x
-  x
-  
+
   ggsave(paste0('figs/', YEAR, '/', y,'_vessel.png'), plot = x, 
-         height = 5, width=6.5, units='in')
+         height = 4.5, width=6.5, units='in')
+  x
 }
 
 fig_sh <- function(data){
   
     y = deparse(substitute(data))
   
-  data.sh <- merge(data, sh, by=c('Fishery', 'District','Haul_ID','ADFG'))
+  data.sh <- merge(data, sh, by=c('Fishery', 'District','Haul_ID','ADFG')) 
   
-  if('Bed' %in% colnames(data)){
-  #SH by year
   data.sh %>% 
-        filter(year>(YEAR-6)) %>% 
+    filter(year>(YEAR-6)) %>% 
+    droplevels(.) %>% 
     ggplot(aes(Shell_Height, fill=Year, color=Year)) + 
-      geom_density() + 
-    facet_grid(Bed~.) +
-     scale_fill_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
-     scale_color_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
+    geom_density() + 
+    scale_fill_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
+    scale_color_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
     guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
-    theme( legend.position = c(0.2, 0.75)) +
-     xlab('Shell height (mm)') + ylab('Density') -> s1
+    theme( legend.position = c(0.2, 0.15)) +
+    xlab('Shell height (mm)') + 
+    ylab('Density') -> s1
   
   data.sh %>% 
-        filter(year>(YEAR-6)) %>% 
+    filter(year>(YEAR-6)) %>% 
     ggplot(aes(Shell_Height, fill=Year, color=Year)) +
-    geom_histogram(bins=50) + facet_grid(Bed~., scales='free_y') +
+    geom_histogram(bins=50) + 
     scale_fill_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
     scale_color_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
     guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-    guides( fill=FALSE, color=FALSE) + theme(legend.key = element_blank())+
-    xlab('Shell height (mm)') + ylab('Count') -> s2
+    guides( fill=FALSE, color=FALSE) + 
+    theme(legend.key = element_blank())+
+    xlab('Shell height (mm)') + 
+    ylab('Count') -> s2
   
+  if('Bed' %in% colnames(data) & length(unique(data$Bed))>1 | !('wk1' %in% data$Bed)){
+    s1 + 
+      facet_grid(Bed~.) -> s1
+    s2 + 
+      facet_grid(Bed~.) -> s2
+    
+    x = arrangeGrob(s1, s2, ncol=2)
+    
+      ggsave(paste0('figs/', YEAR, '/', y,'_sh.png'), plot = x, 
+             height = 8, width=6.5, units='in')
   } else {
-    
-    data.sh %>% 
-          filter(year>(YEAR-6)) %>% 
-      ggplot(aes(Shell_Height, fill=Year, color=Year)) + geom_density() + 
-      scale_fill_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
-      scale_color_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
-      guides(colour = guide_legend(override.aes = list(alpha = 1))) + 
-      theme( legend.position = c(0.2, 0.75)) +
-      xlab('Shell height (mm)') + ylab('Density') -> s1
-    
-    data.sh %>% 
-          filter(year>(YEAR-6)) %>% 
-      ggplot(aes(Shell_Height, fill=Year, color=Year)) +
-      geom_histogram(bins=50) + 
-      scale_fill_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
-      scale_color_manual(values=values, breaks=levels(data.sh$Year), name='Year') +
-      guides(colour = guide_legend(override.aes = list(alpha = 1))) +
-      guides( fill=FALSE, color=FALSE) + theme(legend.key = element_blank())+
-      xlab('Shell height (mm)') + ylab('Count') -> s2
-  }
   
   x = arrangeGrob(s1, s2, ncol=2)
-  
-  if(length(unique(data$Bed)) >= 3){
-  ggsave(paste0('figs/', YEAR, '/', y,'_sh.png'), plot = x, height = 8, width=6.5, units='in')
-  } else {
-    ggsave(paste0('figs/', YEAR, '/', y,'_sh.png'), plot = x, height = 5, width=6.5, units='in')
+
+      ggsave(paste0('figs/', YEAR, '/', y,'_sh.png'), plot = x, 
+             height = 5, width=6.5, units='in')
   }
+  
   x
 }
 
@@ -554,49 +574,47 @@ fig_sh_year <- function(data){
   
   data.sh %>% 
     filter(year==(YEAR-1)) %>% 
+    droplevels(.) %>% 
     ggplot(aes(Shell_Height, fill=Rtnd_Disc, color=Rtnd_Disc)) +
     scale_color_manual( values=c('D'='#e41a1c', 'R'='#377eb8'), 
                         labels=c('discard', 'retain'), name='') +
     scale_fill_manual( values=c('D'='#e41a1c', 'R'='#377eb8'), 
                        labels=c('discard', 'retain'), name='') -> fig 
-   
-  if('Bed' %in% colnames(data)){
+  
   fig + 
-    facet_grid(Bed~., scales = 'free_y') +
     geom_density(alpha=.2) + 
     theme(legend.key = element_blank(), 
           legend.position = c(0.2, 0.75), 
           legend.background = element_rect(fill = "#ffffffaa", colour = NA),
           legend.key.height=unit(.6,'line')) -> s1
-    
+  
   fig +
-    facet_grid(Bed~., scales = 'free_y') +
     geom_histogram(alpha=.2, bins = 50) + 
     guides( fill=FALSE, color=FALSE) -> s2
+  
+   
+  if('Bed' %in% colnames(data) & length(unique(data$Bed))>1){
+    
+  s1 + 
+    facet_grid(Bed~., scales = 'free_y') -> s1
+    
+    
+  s2 +
+    facet_grid(Bed~., scales = 'free_y') -> s2
 
   x = grid.arrange(s1, s2, ncol=2)
   
   ggsave(paste0('figs/', YEAR, '/', y,'_sh_year.png'), plot = x, 
          height = 8, width=6.5, units='in')
-  x
+
   } else {
-    fig + 
-      geom_density(alpha=.2) + 
-      theme(legend.key = element_blank(), 
-            legend.position = c(0.2, 0.75), 
-            legend.background = element_rect(fill = "#ffffffaa", colour = NA),
-            legend.key.height=unit(.6,'line')) -> s1
-    
-    fig +
-      geom_histogram(alpha=.2, bins = 50) + 
-      guides( fill=FALSE, color=FALSE) -> s2
-    
+
     x = grid.arrange(s1, s2, ncol=2)
     
     ggsave(paste0('figs/', YEAR, '/', y,'_sh_year.png'), plot = x, 
            height = 4.5, width=6.5, units='in')
-    x
   }
+  x
 }
 
 fig_rd <- function(data){
@@ -657,20 +675,26 @@ fig_bycatch <- function(data){
     ggplot(aes(year, value, color=variable, group=variable)) + 
     geom_line() + 
     geom_point(size=2) +
-    scale_y_continuous(labels = comma) +
+    scale_y_continuous(labels = comma, name = "Numbers") +
     scale_x_continuous(breaks = 2009:YEAR) +
     scale_color_discrete(name="species",
                          breaks=c("tan", "hal", "opi", 'king'),
                          labels=c("Tanner", "Halibut", "Opilio", "King")) -> x
-  x
-  ggsave(paste0('figs/', YEAR, '/', y,'_by.png'), plot = x, height = 5, 
+
+    ggsave(paste0('figs/', YEAR, '/', y,'_by.png'), plot = x, height = 5, 
          width=6.5, units='in')
+
+    x
 }
 
 fig_discard <- function(data){
+  
   y = deparse(substitute(data))
   
   by %>% 
+    mutate(District = case_when(District %in% c('EKI', 'WKI') ~ "KI",
+                                District=="UB" ~ "M",
+                                TRUE ~ District)) %>% 
     filter(District==toupper(y)) %>% 
     group_by(year) %>% 
     summarise(sample_hrs = sum(Sample_Hrs), 
@@ -680,10 +704,12 @@ fig_discard <- function(data){
               wt = sum(disc, broken, rem_disc) ) -> a
   data %>% 
     group_by(year) %>% 
-    summarise(dredge_hrs = sum(dredge_hrs), round_wt = sum(round_weight)) -> b
+    summarise(dredge_hrs = sum(dredge_hrs), 
+              round_wt = sum(round_weight)) -> b
   
   left_join(a, b) %>% 
-    mutate(disc = wt / sample_hrs * dredge_hrs, per = disc / round_wt * 100)  %>% 
+    mutate(disc = wt / sample_hrs * dredge_hrs, 
+           per = disc / round_wt * 100)  %>% 
     ggplot(aes(year, disc)) + 
     geom_line() + 
     geom_point(size=2) + 
@@ -699,9 +725,13 @@ fig_discard <- function(data){
 }
 
 fig_discard_rat <- function(data){
+  
   y = deparse(substitute(data))
   
   by %>% 
+    mutate(District = case_when(District %in% c('EKI', 'WKI') ~ "KI",
+                                District=="UB" ~ "M",
+                                TRUE ~ District)) %>% 
     filter(District==toupper(y)) %>% 
     group_by(year) %>% 
     summarise(sample_hrs = sum(Sample_Hrs, na.rm=T), 
@@ -715,7 +745,8 @@ fig_discard_rat <- function(data){
               round_wt = sum(round_weight, na.rm=T)) -> b
   
   left_join(a, b) %>% 
-    mutate(disc = wt / sample_hrs * dredge_hrs, per = disc / round_wt * 100)  %>% 
+    mutate(disc = wt / sample_hrs * dredge_hrs, 
+           per = disc / round_wt * 100)  %>% 
     ggplot(aes(year, per)) + 
     geom_line() + 
     geom_point(size=2) + 
@@ -731,10 +762,13 @@ fig_discard_rat <- function(data){
 }
 
 fig_bycatch_rat <- function(data){
-  y = deparse(substitute(data))
-  
-  
+ 
+   y = deparse(substitute(data))
+ 
   by %>% 
+    mutate(District = case_when(District %in% c('EKI', 'WKI') ~ "KI",
+                                District=='UB' ~ "M",
+                                TRUE ~ District)) %>% 
     filter(District==toupper(y)) %>% 
     group_by(year) %>% 
     summarise(Halibut_Count = sum(Halibut_Count),
@@ -776,6 +810,9 @@ fig_clap <- function(data){
     y = deparse(substitute(data))
   
   by %>% 
+    mutate(District = case_when(District %in% c('EKI', 'WKI') ~ "KI",
+                                District=='UB' ~ "M",
+                                TRUE ~ District)) %>% 
     filter(District==toupper(y)) %>% 
     group_by(year) %>% 
     summarise(sample_hrs = sum(Sample_Hrs, na.rm=T), 
@@ -790,12 +827,92 @@ fig_clap <- function(data){
   
   left_join(a, b) %>% 
     mutate( per = disc / round_wt * 100)  %>% 
-    ggplot(aes(year, per)) + geom_line() + geom_point(size=3) + 
+    ggplot(aes(year, per)) + 
+    geom_line() + 
+    geom_point(size=3) + 
     ylab('Clapper ratio - clapper/round wt') +
     scale_y_continuous(labels = comma) + expand_limits(y = 0) +
     scale_x_continuous(breaks = 2009:YEAR) -> x
     
-  ggsave(paste0('figs/', YEAR, '/', y,'_clap.png'), plot = x, height = 5, 
+  ggsave(paste0('figs/', YEAR, '/', y,'_clap.png'), plot = x, height = 4.5, 
          width=6.5, units='in')
   x
+}
+
+fig_shmw <- function(data){
+  
+  y = deparse(substitute(data)) %>% 
+    toupper
+  
+  shmw %>% 
+    mutate(District = case_when(District %in% c('EKI', 'WKI') ~ "KI",
+                                District=='UB' ~ "M",
+                                TRUE ~ District)) %>% 
+    filter(District==y) %>% 
+    mutate(Year = factor(Year),
+           Sex = factor(sex)) %>% 
+    ggplot(aes(shell_height, meat_weight_g)) + 
+      geom_point(color = 'lightgray') +
+    stat_smooth(aes(color = Sex, fill = Sex), method = 'gam', formula = y~s(x, k=4), alpha = 0.2) +
+    xlab('\nShell height (mm)') +
+    ylab('Meat weight (g)\n') +
+    theme(legend.key = element_blank(), 
+          legend.position = c(0.2, 0.85), 
+          legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+          legend.key.height=unit(.6,'line')) +
+    expand_limits(y = 0) -> x
+    
+  
+  ggsave(paste0('figs/', YEAR, '/', y,'_shmw.png'), plot = x, height = 4.5, 
+         width=6.5, units='in')
+  x
+    
+}
+
+fig_shmw_all <- function(data){
+  
+  shmw %>% 
+    mutate(Year = factor(Year),
+           Sex = factor(sex)) %>% 
+    ggplot(aes(shell_height, meat_weight_g)) + 
+    geom_point(color = 'lightgray') +
+    stat_smooth(aes(color = District, fill = District), method = 'gam', 
+                formula = y~s(x, k=4), alpha = 0.2) +
+    xlab('\nShell height (mm)') +
+    ylab('Meat weight (g)\n') +
+    theme(legend.key = element_blank(), 
+          legend.position = c(0.2, 0.80), 
+          legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+          legend.key.height=unit(.6,'line')) +
+    expand_limits(y = 0) -> x
+  
+  
+  ggsave(paste0('figs/', YEAR, '/', 'all_shmw.png'), plot = x, height = 4.5, 
+         width=6.5, units='in')
+  x
+  
+}
+
+fig_shmw_date <- function(data){
+  
+  shmw %>% 
+    mutate(Year = factor(Year),
+           Sex = factor(sex)) %>% 
+    ggplot(aes(date, meat_weight_g, color = District, fill = District)) + 
+    geom_point() +
+    stat_smooth(aes(), method = 'gam', 
+                formula = y~s(x, k=4), alpha = 0.2) +
+    xlab('\nShell height (mm)') +
+    ylab('Meat weight (g)\n') +
+    theme(legend.key = element_blank(), 
+          legend.position = c(0.2, 0.80), 
+          legend.background = element_rect(fill = "#ffffffaa", colour = NA),
+          legend.key.height=unit(.6,'line')) +
+    expand_limits(y = 0) -> x
+  
+  
+  ggsave(paste0('figs/', YEAR, '/', 'date_shmw.png'), plot = x, height = 4.5, 
+         width=6.5, units='in')
+  x
+  
 }
