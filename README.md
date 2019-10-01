@@ -22,6 +22,36 @@ General questions about the data should be directed to the scallop observer coor
   - Libraries and map data are stored in the `helper.R` file
   - the functions and helper files are sourced in the analysis scripts.
   
+The complete folder setup is:
+
+ - code
+ - data
+    - age
+    - bycatch
+      - old_bycatch
+    - catch
+    - catch_comp
+    - crab_size
+    - log
+    - meat_weight
+    - old_catch
+    - shell_height
+  - figs
+    - each year
+  - models
+    - each year
+  - notes
+  - output
+    - each year
+  - safe_figs
+    - each year
+  - tables
+    - each year
+  - tables
+    - each year
+  - text
+    - each year
+  
 
 
 
