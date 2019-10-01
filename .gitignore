@@ -7,7 +7,7 @@ data
 output
 figs
 models
-safe_figs
+*.png
 tables
 *.html
 *.pdf
