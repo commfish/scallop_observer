@@ -5,18 +5,13 @@
 # date: 2019-11-13
 
 # load ----
-library(tidyverse)
-library(GGally)
-library(lubridate)
-library(mgcv)
-library(FNGr); theme_set(theme_sleek())
 
 source("./code/gam_functions.R")
 
 ### define function for fitting smoother computing derivative (tidal index)
 f_smooth_deriv <- function(x){
   spl <- smooth.spline(x$tide_level ~ x$t)
-  x$tidal_index <- predict(spl, deriv = 1)$y
+  x$tidal_rate <- predict(spl, deriv = 1)$y
   x
 }
 
@@ -33,8 +28,8 @@ tide <- read.table("./data/environmental/yakutat bay tide 2009 - 2019/yakutat_ti
 # Cap Suckling Data Buoy
 ## National Data Buoy Center
 buoy <- do.call(bind_rows,
-                  lapply(paste0("data/environmental/cape suckling buoy/", 
-                                list.files("data/environmental/cape suckling buoy")), read_csv))
+                lapply(paste0("data/environmental/cape suckling buoy/", 
+                              list.files("data/environmental/cape suckling buoy")), read_csv))
 
 
 ## rename scallop data fields for consistency
@@ -96,9 +91,9 @@ tide %>%
   rename(tide_level = Pred) %>%
   select(5:10, 4) %>%
   nest(-set_date) %>%
-  mutate(data = map(data, f_smooth_deriv)) %>%
+  mutate(data = purrr::map(data, f_smooth_deriv)) %>%
   unnest(data) %>%
-  mutate(tidal_index = abs(tidal_index),
+  mutate(tidal_rate = abs(tidal_rate),
          set_hr = set_hr) -> tide 
 
 ## Buoy data manipulation
@@ -159,7 +154,7 @@ scallops_comb %>%
 
 ## correlation of all relevant continuous variables
 scallops_comb %>%
-  select(depth, wind_dir, wind_sp, wave_ht, tidal_index, tide_level, haul_speed, area_swept, rw_cpue) %>%
+  select(depth, wind_dir, wind_sp, wave_ht, tidal_rate, tide_level, haul_speed, area_swept, rw_cpue) %>%
   GGally::ggpairs()
 
 ## view interannual trend in mean rw_cpue by bed
@@ -176,156 +171,226 @@ scallops_comb %>%
   geom_boxplot(aes(x = Vessel, y = rw_cpue, col = Bed))+
   facet_wrap(~Year)
 
+## view relationship between rw_cpue and latitdue, longitude
+scallops_comb %>%
+  ggplot()+
+  geom_point(aes(x = set_lat, y = rw_cpue, color = Bed))+
+  labs(x = "Latitude", y = "Round Weight CPUE") -> p_lat
+scallops_comb %>%
+  ggplot()+
+  geom_point(aes(x = set_lon, y = rw_cpue, color = Bed))+
+  labs(x = "Longitude", y = "Round Weight CPUE") -> p_lon
+plot_grid(p_lat, p_lon, nrow = 1)
+
+scallops_comb %>%
+  ggplot()+
+  geom_point(aes(x = set_lon,  y = set_lat, color = rw_cpue), alpha = 0.2)+
+  scale_color_gradientn(colours = terrain.colors(10))+
+  labs(y = "Latitude", x = "Longitude", color = "CPUE")
+
 # model fitting ----
 
 ## define cpue adjustment as 10% of the all time average (CPUE must be positive for gamma distribution)
 adj <- mean(scallops_comb$rw_cpue, na.rm = T) * 0.10
 
-## Model with just Year
-### fit model
-mod_0 <- bam(rw_cpue + adj ~ Year, data = scallops_comb, gamma = 1.4, family = Gamma(link = log))
-### examine diagnostics
-plot(mod_0, all.terms = T, shade = T, residuals = T, cex = 1, pch = 1, pages = 1)
-dev.off()
+## Fit the existing model 
+mod_0 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + te(set_lon, set_lat, by = Bed) + Year + 
+               Bed + Vessel, data = scallops_comb, gamma=1.4, family=Gamma(link=log), select = T)
+summary(mod_0)
+### partial effects
+print(plot(getViz(mod_0)), pages = 1)
+### diagnostics
 gam.check(mod_0)
-f_resid_plots(mod_0)
 
-## Model with linear Year and Bed
-### fit model
-mod_1 <- update(mod_0, ~. + Bed)
-### examine diagnostics
-plot(mod_1, all.terms = T, shade = T, residuals = T, cex = 1, pch = 1, pages = 1)
-dev.off()
+## Fit several versions of a 'Full Model' that includes: 
+
+### smoothed depth, wave height, wind speed, haul_speed, tidal rate, location, and linear year, bed, vessel
+mod_1 <- bam(rw_cpue + adj ~ s(depth) + s(wave_ht) + s(wind_sp) + s(haul_speed) + s(tidal_rate) + 
+               te(set_lon, set_lat, by = Bed) + Year + Bed + Vessel, data = scallops_comb, gamma=1.4, 
+             family=Gamma(link=log), select = T)
+summary(mod_1)
+anova(mod_1)
+print(plot(getViz(mod_1)) + l_fitRaster() + l_fitContour() + l_points(color = "grey60")+ l_fitLine() + l_ciLine() 
+      + l_ciBar(linetype = 1) + l_fitPoints(size = 1), pages = 2)
 gam.check(mod_1)
-f_resid_plots(mod_1)
 
-## fit model with interaction between bed and year
-mod_1.1 <- bam(rw_cpue + adj ~ Year * Bed, data = scallops_comb, gamma = 1.4, family = Gamma(link = log))
-### examine diagnostics
+### restrict k on depth and subset data to remove haul speed outliers
+mod_1.1 <- bam(rw_cpue + adj ~ s(depth, k = 4) + s(wave_ht) + s(wind_sp) + s(haul_speed) + s(tidal_rate) + 
+                 te(set_lon, set_lat, by = Bed) + Year + Bed + Vessel, data = scallops_comb[-ex,], gamma=1.4, 
+               family=Gamma(link=log), select = T, subset = haul_speed >= 4)
 summary(mod_1.1)
+print(plot(getViz(mod_1.1)) + l_fitRaster() + l_fitContour() + l_points(color = "grey60")+ l_fitLine() + l_ciLine() 
+      + l_ciBar(linetype = 1) + l_fitPoints(size = 1), pages = 2)
 gam.check(mod_1.1)
-f_resid_plots(mod_1.1)
 
-## Model with linear Year, Bed, and Vessel
-### fit model
-mod_2 <- update(mod_1.1, ~. + Vessel)
-### examine diagnostics
+### same as mod_1.1, but nest s(depth) by bed
+mod_2 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht) + s(wind_sp) + s(haul_speed) + s(tidal_rate) + 
+               te(set_lon, set_lat, by = Bed) + Year + Bed + Vessel, data = scallops_comb[-ex,], gamma=1.4, 
+             family=Gamma(link=log), select = T, subset = haul_speed >= 4)
 summary(mod_2)
-plot(mod_2, all.terms = T, shade = T, residuals = T, cex = 1, pch = 1, pages = 1)
-dev.off()
+print(plot(getViz(mod_2)) + l_fitRaster() + l_fitContour() + l_points(color = "grey60")+ l_fitLine() + l_ciLine() 
+      + l_ciBar(linetype = 1) + l_fitPoints(size = 1), pages = 2)
 gam.check(mod_2)
-f_resid_plots(mod_2)
 
-## Model with smoothed depth, linear Year, Bed, and Vessel
-### fit model
-mod_3 <- update(mod_2, ~. + s(depth))
-### examine diagnostics
+### same as mod_2, but include interaction between year and Bed
+mod_3 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht) + s(wind_sp) + s(haul_speed) + s(tidal_rate) + 
+               te(set_lon, set_lat, by = Bed) + Year * Bed + Vessel, data = scallops_comb, gamma=1.4, 
+             family=Gamma(link=log), select = T, subset = haul_speed >= 4)
 summary(mod_3)
-plot(mod_3, all.terms = T, shade = T, residuals = T, cex = 0.3, pch = 1, pages = 1)
-dev.off()
+anova(mod_3)
+print(plot(getViz(mod_3)) + l_fitRaster() + l_fitContour() + l_points(color = "grey60")+ l_fitLine() + l_ciLine() 
+      + l_ciBar(linetype = 1) + l_fitPoints(size = 1), pages = 2)
 gam.check(mod_3)
-f_resid_plots(mod_3)
 
-### fit model with interaction and fewer degrees of freedom on depth
-mod_3.1 <- update(mod_2, ~. + s(depth, by = Bed, k = 4))
-### examine diagnostics
+### mod_3 with wind speed, haul speed, and tidal rate as parametric effects
+mod_3.1 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht) + wind_sp + haul_speed + tidal_rate + 
+                 te(set_lon, set_lat, by = Bed) + Year * Bed + Vessel, data = scallops_comb, gamma=1.4, 
+               family=Gamma(link=log), select = T, subset = haul_speed >= 4)
 summary(mod_3.1)
-plot(mod_3.1, all.terms = T, shade = T, residuals = T, pages = 1)
-dev.off()
+anova(mod_3.1)
+### refit mod3.1 after dropping haul speed and tidal rate
+mod_3.1 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht) + wind_sp + 
+                 te(set_lon, set_lat, by = Bed) + Year * Bed + Vessel, data = scallops_comb, gamma=1.4, 
+               family=Gamma(link=log), select = T, subset = haul_speed >= 4)
+summary(mod_3.1)
 gam.check(mod_3.1)
-f_resid_plots(mod_3.1)
-ggplot(scallops_comb)+
-  geom_point(aes(x = depth, y = resid(mod_3.1)))+
-  geom_hline(yintercept = 0, linetype = 2, col = "red")+
-  facet_wrap(~Bed)
 
-## Model with smoothed depth and wave ht, linear Year, Bed, and Vessel
-### fit model with interaction
-mod_4 <- update(mod_3.1, ~. + s(wave_ht))
-### examine diagnostics
-summary(mod_4) # edf for wave ht seems larger than needed given data
-plot(mod_4, all.terms = T, shade = T, residuals = T, pages = 1) 
-dev.off()
+## Fit reduced models that include:
+
+### smoothed depth, wave height, location, and linear year, bed, and Vessel
+mod_4 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht) + te(set_lon, set_lat, by = Bed) + 
+               Year * Bed + Vessel, data = scallops_comb, gamma=1.4, family=Gamma(link=log), select = T)
+summary(mod_4)
 gam.check(mod_4)
-f_resid_plots(mod_4)
-### refit model restricting degrees of freedom on wave height 
-mod_4.1 <- update(mod_3.1, ~. + s(wave_ht, k = 3))
+### refit mod_4 with restrict degrees of freedom on wave height
+mod_4.1 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht, k = 3) + te(set_lon, set_lat, by = Bed) + 
+                 Year * Bed + Vessel, data = scallops_comb, gamma=1.4, family=Gamma(link=log), select = T)
 summary(mod_4.1)
 gam.check(mod_4.1)
-lmtest::lrtest(mod_4.1, mod_4) # adding extra df (larger k) does not signifcantly increase model fit, go with k = 3
 
-## Model with smoothed depth, wave ht, and wind sp, and linear Year, Bed, and Vessel
-mod_5 <- update(mod_4.1, ~. + s(wind_sp))
-### examine diagnostics
-summary(mod_5)# edf for wave ht seems larger than needed given data
-plot(mod_5, select = 9, shade = T, residuals = T, cex = 0.3, pch = 1) 
-f_resid_plots(mod_5)
-### refit model restricting degrees of freedom on wind speed 
-mod_5.1 <- update(mod_4.1, ~. + s(wind_sp, k = 3))
-summary(mod_5.1)
-gam.check(mod_5.1)
+### same as mod_4.1, but without te(set_lat, set_lon) nested within bed
+mod_5 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht, k = 3) + te(set_lon, set_lat) + 
+               Year * Bed + Vessel, data = scallops_comb[-ex,], gamma=1.4, family=Gamma(link=log), select = T)
+summary(mod_5)
+gam.check(mod_5)
 
-## Model with smoothed depth, wave ht, wind sp, and tidal_index, and linear Year, Bed, and Vessel
-mod_6 <- update(mod_5.1, ~. + s(tidal_index))
-summary(mod_6)
-plot(mod_6, select = 10, shade = T, residuals = T, cex = 0.3, pch = 1) 
-
-## Model with smoothed depth, wave ht, wind sp, and haul speed, and linear Year, Bed, and Vessel
-mod_7 <- update(mod_5.1, ~. + s(haul_speed, k = 3))
-summary(mod_7)
-plot(mod_7, select = 10, shade = T, residuals = T, cex = 0.5, pch = 1)
-### refit model without slow haul speed outliers
-mod_7.1 <- update(mod_7, subset = haul_speed >= 4)
-summary(mod_7.1)
-plot(mod_7.1, select = 10, shade = T, residuals = T, cex = 0.5, pch = 1)
-gam.check(mod_7.1)
-
-## Model with smoothed depth, wave ht, wind sp, haul speed, and tensor product of lat and lon,
-## and linear Year, Bed, and Vessel
-mod_8 <- update(mod_7.1, ~. + te(set_lon, set_lat, by = Bed)) 
-summary(mod_8)
-plot(mod_8, select = 17, shade = T, residuals = T, cex = 0.5, pch = 1)
-f_resid_plots(mod_8)
-
-## The existing model in use
-mod_9 <- bam(rw_cpue + adj ~ s(depth, k=4, by = Bed) + te(set_lon, set_lat, by = Bed) + Year + 
-              Bed + Vessel, data = scallops_comb, gamma=1.4, family=Gamma(link=log))
-summary(mod_9)
-
-## Fit reduced model (Best inferred by diagnostic plots)
-mod_10 <- bam(rw_cpue + adj ~ s(depth, k=4, by = Bed) + te(set_lon, set_lat, by = Bed) + s(wave_ht, k = 3) + Year * 
-               Bed + Vessel, data = scallops_comb, gamma=1.4, family=Gamma(link=log))
-summary(mod_10)
-f_resid_plots(mod_10)
-gam.check(mod_10)
-
-## Add tidal_index to reduced model and see if it improves it
-mod_11 <- update(mod_10, ~. + s(tidal_index))
-summary(mod_11) # s(tidal_index) is insignificant
-## ANOVA on the addition of tidal index
-anova(mod_10, mod_11, test = "Chisq") # suggests significant reduction in deviance
-gam.check(mod_11)
+## in linear predicator vs residual plot that are several point in each model with combinations of linear predictors,
+## could be considered for removal as outliers
 
 # model comparison ----
 
 ## compile models into a list
-gam <- mget(ls(pattern = "mod_"))
-tibble(gam) %>%
+mget(ls(pattern = "mod_")) %>%
+  tibble(gam = .) %>%
   mutate(name = names(gam)) -> model_comp
 
 ## select only models we wish to compare
 ## add estimaed df, GCV score, AIC, and delta AIC
 model_comp %>%
-  slice(1, 3, 6, 8, 10, 12, 13, 15, 16, 17, 4, 5) %>% 
   mutate(edf = map_dbl(gam, f_edf),
          gcv = map_dbl(gam, f_gcv),
-         AIC = map_dbl(gam, AIC),
-         delta_AIC = AIC - min(AIC)) 
+         loglik = purrr::map(gam, logLik.gam),
+         AIC = map_dbl(loglik, AIC),
+         delta_AIC = AIC - min(AIC)) %>%
+  arrange(AIC) 
 
-## The reduced model without tidal_index (mod_10) seems to be the most appropriate, continue with more model checking
+## anova between mod_4.1 and mod_3
+anova(update(mod_4.1, ~., subset = haul_speed >= 4), mod_3.1, test = "Chisq")
+
+
+# compare raw and standardized cpue estimates ----
+
+## average CPUE per year
+scallops_comb %>%
+  mutate(mod_4.1_fit = predict.gam(mod_4.1, ., type = "response") - adj,
+         mod_0_fit = predict.gam(mod_0,  ., type = "response") - adj) %>%
+  group_by(Year) %>%
+  summarise(raw = median(rw_cpue),
+            raw_se = sd(rw_cpue) / sqrt(n() - 1),
+            mod_4.1 = median(mod_4.1_fit),
+            mod_4.1_se = sd(mod_4.1_fit) / sqrt(n() - 1),
+            mod_0 = median(mod_4.1_fit),
+            mod_0_se = sd(mod_0_fit) / sqrt(n() - 1)) %>%
+  unite("Raw", raw:raw_se) %>%
+  unite("Model_4", mod_4.1:mod_4.1_se) %>%
+  unite("Model_0", mod_0:mod_0_se) %>%
+  pivot_longer(cols = c(Raw, Model_4, Model_0)) %>%
+  separate(value, into = c("mean", "se"), sep = "_") %>%
+  rename(Model = name) %>%
+  mutate(mean = as.numeric(mean), 
+         se = as.numeric(se)) %>%
+  ggplot()+
+  geom_point(aes(x = Year, y = mean, col = Model))+
+  geom_line(aes(x = Year, y = mean, col = Model, linetype = Model, group = Model))+
+  geom_errorbar(aes(x = Year, ymin = mean - se, ymax = mean + se, group = Model), width = 0.2)+
+  labs(x = NULL, y = "CPUE (lbs / dredge hr)", color = NULL, linetype = NULL)
+
+## standardized vs nominal values
+scallops_comb %>%
+  mutate(mod_4.1_fit = predict.gam(mod_4.1, ., type = "response") - adj,
+         mod_0_fit = predict.gam(mod_0,  ., type = "response") - adj) %>%
+  ggplot()+
+  geom_point(aes(x = mod_4.1_fit, y = rw_cpue))+
+  labs(x = "Standardized CPUE (Model 4)", y = "Round Weight CPUE")
+
+### correlation
+scallops_comb %>%
+  mutate(mod_4.1_fit = predict.gam(mod_4.1, ., type = "response") - adj,
+         mod_0_fit = predict.gam(mod_0,  ., type = "response") - adj,
+         mod_3_fit = predict.gam(mod_3,  ., type = "response") - adj,) -> tmp.dat
+with(tmp.dat, cor(mod_4.1_fit, rw_cpue))
+with(tmp.dat, cor(mod_3_fit, rw_cpue))
+with(tmp.dat, cor(mod_0_fit, rw_cpue))
 
 
 
+# examine best model with subsets of data (ongoing) ----
+
+# creat a list of samples
+scal_samp <- list()
+for(i in 1:100) {
+  scallops_comb %>%
+    sample_n(1000) -> scal_samp[[i]]
+}
+
+# define a function for the GAM model
+f_mod_10 <- function(x){
+  bam(rw_cpue + adj ~ s(depth, k=4, by = Bed) + te(set_lon, set_lat, by = Bed) + s(wave_ht, k = 3) + Year * 
+        Bed + Vessel, data = x, gamma=1.4, family=Gamma(link=log), select = T)
+}
+
+tibble(scal_samp) %>%
+  mutate(gam = map(scal_samp, f_mod_10)) -> scal_samp_mod
+
+saveRDS(scal_samp_mod, "./scal_samp.RDS")
+
+red_mod <- tibble(edf = summary(mod_10)$edf,
+                  covar = 1:15)
+
+scal_samp_mod %>%
+  mutate(sm_edf = map(gam, f_smooth_func_edf),
+         sample_name = c(1:100)) %>%
+  select(sm_edf, sample_name) %>%
+  unnest(sm_edf) %>%
+  mutate(covar = rep(c(1:15), 100)) %>%
+  ggplot()+
+  geom_point(aes(x = covar, y = sm_edf)) +
+  geom_point(data = red_mod, aes(x = covar, y = edf), col = "red")
+
+scallops_comb %>%
+  mutate(fitted = predict(mod_10, type = "response")) %>%
+  group_by(Year) %>%
+  summarise(mean_std_cpue = mean(fitted)) -> mod_10_dat
 
 
+
+scal_samp_mod %>%
+  mutate(fitted = map(gam, f_predict),
+         sample = 1:100) %>%
+  unnest(scal_samp, fitted) %>%
+  group_by(Year, sample) %>%
+  summarise(mean_std_cpue = mean(fitted)) %>%
+  ggplot()+
+  geom_point(aes(x = Year, y = mean_std_cpue))+
+  geom_point(data = mod_10_dat, aes(x = Year, y = mean_std_cpue), col = "red")
 
