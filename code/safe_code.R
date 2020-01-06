@@ -22,10 +22,18 @@ catch <- do.call(bind_rows,
 shell_height <- do.call(bind_rows,
                  lapply(paste0("data/shell_height/", list.files("data/shell_height/")), read_csv))
 
+## bycatch data (crab, fish and scallop discards)
+bycatch <- do.call(bind_rows,
+                        lapply(paste0("data/bycatch/", list.files("data/bycatch/")), read_csv))
+
+## crab bycatch measurements
+crab_size <- do.call(bind_rows,
+                lapply(paste0("data/crab_size/", list.files("data/crab_size/")), read_csv))
+
 ## GHLs by area, district, season
 ghl <- read_csv("./data/metadata/ghl.csv")
 
-
+## names and abbreviations of management units
 mgmt_unit <- read_csv("./data/metadata/management_units.csv")
 
 
@@ -40,8 +48,17 @@ names(catch) <- c("Fishery", "District", "ADFG", "Trip_ID", "Haul_ID",
                      "dredge_hrs", "haul_speed", "distance_nm", "area_swept", 
                      "rtnd_basket", "round_weight", "meat_weight", "est_yield",
                      "tot_rtnd_basket", "tot_day_meat_weight")
+### bycatch data
+names(bycatch) <- c("Fishery", "ADFG", "Set_date", "District", "hauls", "dredge_hrs", 
+                    "est_rnd_wt", "mt_wt", "sample_hrs", "bairdi_count", "opilio_count",
+                    "dungeness_count", "halibut_count", "disc_count", "disc_wt", "broken_wt",
+                    "rem_disc_wt", "clapper_count", "king_count")
+                    
 ### shell height data
 names(shell_height)[c(6, 7)] <- c("shell_height", "shell_num")
+
+### crab data
+names(crab_size) <- c("Fishery", "District", "race_code", "sex", "size", "sampfrac_num_crab")
 
 ## create a vector of districts fished in the most recent season
 ## change number to current year
@@ -55,7 +72,7 @@ catch %>%
 
 ## fishery catch statistics
 fished_districts %>%
-  purrr::map(~f_fishery_stats(catch, old_data_table = T, district = .))
+  purrr::map(~f_fishery_stats(catch, bycatch, specific_m = F, old_data_table = T, district = .))
 
 ## raw and standardized cpue
 ### subset fished districts so that GAMs may run
@@ -67,6 +84,11 @@ tibble(fished_districts) %>%
 ## shell height composition
 fished_districts %>%
   purrr::map(~f_sh_comp(shell_height, district = .))
+
+## crab bycatch
+f_bycatch_chionoecetes(bycatch, crab_size, all_seasons = F)
+f_bycatch_king(bycatch, all_seasons = F)
+
 
 # clean up: re-do figures that do not suit the generalized function ----
 

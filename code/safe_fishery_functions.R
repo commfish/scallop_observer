@@ -1,6 +1,6 @@
 # notes ----
 # SAFE report 
-# Fishery Data Functions
+# Functions for Summarizing Fishery Data
 # author: Tyler Jackson (some functions by Ben Williams)
 # contact: tyler.jackson@alaska.gov
 
@@ -9,14 +9,14 @@ library(tidyverse)
 library(latticeExtra)
 library(lubridate)
 library(mgcv)
-library(tibbletime)
+library(zoo)
 library(cowplot)
 library(FNGr); theme_set(theme_sleek())
 
 # functions ----
 
 ## catch statistics
-f_fishery_stats <- function(catch, district, old_data_table = F){
+f_fishery_stats <- function(catch, district, bycatch, old_data_table = F, specific_m = F){
   
   # manipulate data
   catch %>%
@@ -34,7 +34,9 @@ f_fishery_stats <- function(catch, district, old_data_table = F){
               dredge_hrs = sum(dredge_hrs, na.rm = T),
               mt_cpue = mt_wt / dredge_hrs,
               rnd_cpue = rnd_wt / dredge_hrs) %>%
-    ungroup()-> dat
+    ungroup() %>%
+    mutate(year = as.numeric(substring(Season, 1, 4))) %>%
+    arrange(year) -> dat
   
   # combine with old data table (if necessary)
   if(old_data_table == T){
@@ -57,6 +59,18 @@ f_fishery_stats <- function(catch, district, old_data_table = F){
       mutate(year = as.numeric(substring(Season, 1, 4))) %>%
       arrange(year) -> dat
   }
+  
+  # bring in GHL and finish table
+  ghl %>%
+    filter(District == district) %>%
+    right_join(dat, "Season") %>%
+    select(-Area, -District, -Fishery, -year) -> dat
+  
+  # add discard mortality
+  f_scal_discard(bycatch, district, specific_m, old_data_table) %>%
+    select(Season, meat_disc_mort_lbs) %>%
+    right_join(dat, by = "Season") %>%
+    select(1, 3:9, 2) -> dat
   
   # generate plot using latticeExtra package
   bar <- barchart(mt_wt~Season, dat, col = "grey", scales = list(x = list(rot=90)), 
@@ -196,13 +210,10 @@ f_fishery_cpue <- function(x, district, weight_type){
   
   # create plots
   
-  ## rollify the function mean()
-  roll_mean <- rollify(mean, window = 5)
-  
   ## raw plot
   x_cpue %>%
     mutate(raw_grand_mean = mean(raw_cpue_mean, na.rm = T),
-           raw_roll_mean = roll_mean(raw_cpue_mean)) %>%
+           raw_roll_mean = rollmean(raw_cpue_mean, 5, fill = NA, align = "right")) %>%
     select(Season, raw_cpue_mean, raw_grand_mean, raw_roll_mean) %>%
     pivot_longer(c(raw_cpue_mean, raw_roll_mean, raw_grand_mean), names_to = "Name") %>%
     mutate(Name = case_when(Name == "raw_cpue_mean" ~ "Raw CPUE",
@@ -220,7 +231,7 @@ f_fishery_cpue <- function(x, district, weight_type){
   ## standardized plot
   x_cpue %>%
     mutate(std_grand_mean = mean(std_cpue, na.rm = T),
-           std_roll_mean = roll_mean(std_cpue)) %>%
+           std_roll_mean = rollmean(std_cpue, 5, fill = NA, align = "right")) %>%
     select(Season, std_cpue, std_grand_mean, std_roll_mean) %>%
     pivot_longer(c(std_cpue, std_grand_mean, std_roll_mean), names_to = "Name") %>%
     mutate(Name = case_when(Name == "std_cpue" ~ "Std. CPUE",
@@ -286,3 +297,184 @@ f_sh_comp <- function(sh, district){
   print(sh_plot)
   dev.off()
 }
+
+## estimate scallop discard rate, total meat weights discarded, and discard mortality
+f_scal_discard <- function(bycatch, district, specific_m = F, old_data_table = F){
+
+  bycatch %>%
+    filter(District == district) %>%
+    mutate(set_date = mdy(Set_date),
+          month = month(set_date),
+          year = year(set_date),
+          Season = ifelse(month >= 7, 
+                          paste0(year,"/", substring(year + 1, 3, 4)), 
+                          paste0(year - 1,"/", substring(year, 3, 4)))) -> bc
+  
+  if(specific_m == F){
+  # Assume average 10% meat recovery
+  # Assume 20% mortality rate on discards (no split for broken vs whole discards)
+  bc %>%
+    group_by(Season) %>%
+    summarise(scal_disc_rate = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
+              scal_disc_est_lbs = scal_disc_rate * sum(dredge_hrs),
+              meat_disc_lbs = scal_disc_est_lbs * 0.10,
+              meat_disc_mort_lbs = meat_disc_lbs * 0.20) -> disc
+  } else{
+  # Assume average 10% meat recovery
+  # Assume different discard mortality rates (20% - intact, 100% - broken)
+  bc %>%
+    group_by(Season) %>%
+    summarise(scal_disc_rate = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
+              scal_disc_est_lbs = scal_disc_rate * sum(dredge_hrs),
+              meat_disc_lbs = scal_disc_est_lbs * 0.10,
+              intact_prop = sum(disc_wt) / sum(disc_wt, broken_wt),
+              broken_prop = 1 - intact_prop,
+              meat_disc_mort_lbs = (meat_disc_lbs * intact_prop * 0.2) + (meat_disc_lbs * broken_prop)) -> disc
+  }   
+  disc
+}
+
+## estimate chionoecetes crab bycatch
+f_bycatch_chionoecetes <- function(bycatch, crab_size, all_seasons = F) {
+
+  bycatch %>%
+    mutate(set_date = mdy(Set_date),
+           month = month(set_date),
+           year = year(set_date),
+           Season = ifelse(month >= 7, 
+                           paste0(year,"/", substring(year + 1, 3, 4)), 
+                           paste0(year - 1,"/", substring(year, 3, 4)))) -> bc
+  
+  # find most recent season
+  seas <- bc$Season[bc$set_date == max(bc$set_date)]
+  
+  bc %>%
+    group_by(Season, District) %>%
+    summarize(dredge_hrs = sum(dredge_hrs),
+              sample_hrs = sum(sample_hrs),
+              bairdi = sum(bairdi_count) / sample_hrs * dredge_hrs,
+              opilio = sum(opilio_count) / sample_hrs * dredge_hrs) %>%
+      select(Season, District, bairdi, opilio) %>%
+      pivot_longer(c(bairdi, opilio), names_to = "spp", values_to = "est") %>%
+      filter(est != 0) -> chionoecetes
+ 
+  # estimate chionoecetes weight
+  crab_size %>%
+    left_join(bc %>%
+               select(Fishery, Season),
+               by = "Fishery") %>%
+    mutate(spp = case_when(race_code == 68560 ~ "bairdi",
+                           race_code == 68541 ~ "opilio")) %>%
+    group_by(Season, District, size, sex, spp) %>%
+    summarise(num_crab = round(sum(sampfrac_num_crab))) %>%
+    ungroup() %>%
+    mutate(calc_wt = case_when(spp == "bairdi" & sex == 1 ~ num_crab * 0.00027 * size^3.022134,
+                               spp == "bairdi" & sex == 2 ~ num_crab * 0.000562 * size^2.816928,
+                               spp == "opilio" & sex == 1 ~ num_crab * 0.000267 * size^3.097253,
+                               spp == "opilio" & sex == 2 ~ num_crab * 0.001158 * size^2.827784)) %>%
+    group_by(Season, District, spp) %>%
+    summarise(avg_wt_g = sum(calc_wt) / sum(num_crab)) %>%
+    left_join(chionoecetes, by =c("Season", "District", "spp")) %>%
+    mutate(bycatch_lb = avg_wt_g * est * 0.00220462) -> chionoecetes_bycatch
+    
+  if(all_seasons == F){
+     chionoecetes_bycatch %>%
+       filter(Season == seas) -> chionoecetes_bycatch
+      
+    write_csv(chionoecetes_bycatch, paste0("./output/safe/", YEAR, "/chionoecetes_bycatch_", 
+                                           gsub("/", "-", seas), ".csv"))
+    } else{
+      write_csv(chionoecetes_bycatch, paset0("./output/safe/", YEAR, "/chionoecetes_bycatch_all_seasons.csv"))
+    }
+    
+  # chionoecetes size comps
+  crab_size %>%
+    mutate(Season = bc$Season[match(.$Fishery, bc$Fishery)])%>%
+    filter(Season == seas) %>%
+    mutate(spp = case_when(race_code == 68560 ~ "bairdi",
+                           race_code == 68541 ~ "opilio"),
+           size_bin = cut(size, breaks = seq(3, 253, 5), labels = F),
+           size_bin = seq(0, 250, 5)[size_bin],
+           Sex = case_when(sex == 1 ~ "Male",
+                           sex == 2 ~ "Female"),
+           Sex = factor(Sex, levels = c("Male", "Female")),
+           District = ifelse(District == "D", "YAK", District)) %>%
+    group_by(Season, District, size_bin, Sex, spp) %>%
+    summarise(num_crab = round(sum(sampfrac_num_crab))) %>%
+    left_join(mgmt_unit, by = c("District" = "District_code")) %>%
+    mutate(panel_name = paste(Area, District_name, "Tanner Crab"),
+           panel_name = ifelse(panel_name == "Yakutat Yakutat Tanner Crab",
+                               "Yakutat Tanner Crab", panel_name),
+           panel_name = ifelse(panel_name == "Dutch Harbor Dutch Harbor Tanner Crab",
+                               "Dutch Harbor Tanner Crab", panel_name),
+           panel_name = ifelse(panel_name == "Bering Sea Bering Sea Tanner Crab",
+                               "Bering Sea Tanner Crab", panel_name),
+           panel_name = ifelse(panel_name == "Prince William Sound West Kayak Island Tanner Crab",
+                               "PWS West Kayak Island Tanner Crab", panel_name),
+           panel_name = ifelse(panel_name == "Prince William Sound East Kayak Island Tanner Crab",
+                               "PWS East Kayak Island Tanner Crab", panel_name),
+           panel_name = ifelse(spp == "opilio", "Bering Sea Snow Crab", panel_name)) %>%
+    group_by(panel_name) %>%
+    mutate(sum_crab = sum(num_crab)) -> plot_data
+  
+  # make a note of which districts were not plotted
+  print(paste("The following districts were not plotted since there were < 50 crab measured:",
+              paste(plot_data %>%
+                      filter(sum_crab < 50) %>%
+                      pull(District) %>%
+                      unique(),
+                    collapse = ", ")))
+              
+              
+  # print size comp plot
+  plot_data%>%
+    filter(sum_crab >= 50) %>%
+    ggplot()+
+    geom_point(aes(x = size_bin, y = num_crab, shape = factor(Sex)))+
+    scale_shape_manual(values = c(8, 1))+
+    geom_line(aes(x = size_bin, y = num_crab, linetype = factor(Sex)))+
+    labs(x = "Carapace width (mm)", y = "Number of crab", shape = NULL, linetype = NULL)+
+    facet_wrap(~panel_name, scales = "free_y", ncol = 2)+
+    theme(legend.position = "bottom") -> crab_plot
+    
+  png(paste0("./figures/safe/", YEAR, "/chionoecetes_size_comp.png"), 
+      width = 6, height = 8, units = "in", res = 300)
+  print(crab_plot)
+  dev.off()
+    
+}  
+
+## estimate king crab bycatch    
+f_bycatch_king <- function(bycatch, all_seasons = F) {
+  
+  bycatch %>%
+    mutate(set_date = mdy(Set_date),
+           month = month(set_date),
+           year = year(set_date),
+           Season = ifelse(month >= 7, 
+                           paste0(year,"/", substring(year + 1, 3, 4)), 
+                           paste0(year - 1,"/", substring(year, 3, 4)))) -> bc
+  
+  # find most recent season
+  seas <- bc$Season[bc$set_date == max(bc$set_date)]
+  
+  bc %>%
+    group_by(Season, District) %>%
+    summarize(est = sum(king_count) / sum(sample_hrs) * sum(dredge_hrs)) -> king_bycatch
+              
+  if(all_seasons == F){
+    king_bycatch %>%
+      filter(Season == seas) -> king_bycatch
+    
+    write_csv(king_bycatch, paste0("./output/safe/", YEAR, "/king_bycatch_", 
+                                           gsub("/", "-", seas), ".csv"))
+  } else{
+    write_csv(king_bycatch, paset0("./output/safe/", YEAR, "/king_bycatch_all_seasons.csv"))
+  }
+}      
+    
+
+
+
+
+
