@@ -7,6 +7,7 @@
 # load ----
 library(tidyverse)
 library(latticeExtra)
+library(rsample)
 library(lubridate)
 library(mgcv)
 library(zoo)
@@ -310,18 +311,53 @@ f_scal_discard <- function(bycatch, district, specific_m = F, old_data_table = F
                           paste0(year,"/", substring(year + 1, 3, 4)), 
                           paste0(year - 1,"/", substring(year, 3, 4)))) -> bc
   
+    boot_ci <- function(split){
+      
+      rsample::analysis(split) %>%
+        mutate(scal_disc_rate = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
+               scal_disc_est_lbs = scal_disc_rate * sum(dredge_hrs)) %>%
+        summarise(scal_disc_rate = mean(scal_disc_rate, na.rm = T),
+                  scal_disc_est_lbs = mean(scal_disc_est_lbs, na.rm = T))
+    }  
+    
   if(specific_m == F){
+    
+
   # Assume average 10% meat recovery
   # Assume 20% mortality rate on discards (no split for broken vs whole discards)
+  bc %>%
+    nest(-Season) %>%
+    mutate(samp = map(data, ~rsample::bootstraps(., 1000))) %>%
+    unnest(samp) %>%
+    mutate(models = map(splits, ~boot_ci(.x))) %>%
+    unnest(models) %>%
+    group_by(Season) %>%
+    summarise(lwr95 = quantile(scal_disc_est_lbs, 0.025, na.rm = T),
+              upp95 = quantile(scal_disc_est_lbs, 0.975, na.rm = T)) -> ci
+      
   bc %>%
     group_by(Season) %>%
     summarise(scal_disc_rate = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
               scal_disc_est_lbs = scal_disc_rate * sum(dredge_hrs),
               meat_disc_lbs = scal_disc_est_lbs * 0.10,
-              meat_disc_mort_lbs = meat_disc_lbs * 0.20) -> disc
+              meat_disc_mort_lbs = meat_disc_lbs * 0.20) %>%
+    left_join(ci, by = "Season") %>%
+    select(1, 2, 3, 6, 7, 4, 5) -> disc
+  
   } else{
+    
+
   # Assume average 10% meat recovery
   # Assume different discard mortality rates (20% - intact, 100% - broken)
+  bc %>%
+    nest(-Season) %>%
+    mutate(samp = map(data, ~rsample::bootstraps(., 1000))) %>%
+    unnest(samp) %>%
+    mutate(models = map(splits, ~boot_ci(.x))) %>%
+    unnest(models) %>%
+    group_by(Season) %>%
+    summarise(lwr95 = quantile(scal_disc_est_lbs, 0.025, na.rm = T),
+              upp95 = quantile(scal_disc_est_lbs, 0.975, na.rm = T)) -> ci
   bc %>%
     group_by(Season) %>%
     summarise(scal_disc_rate = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
@@ -329,7 +365,9 @@ f_scal_discard <- function(bycatch, district, specific_m = F, old_data_table = F
               meat_disc_lbs = scal_disc_est_lbs * 0.10,
               intact_prop = sum(disc_wt) / sum(disc_wt, broken_wt),
               broken_prop = 1 - intact_prop,
-              meat_disc_mort_lbs = (meat_disc_lbs * intact_prop * 0.2) + (meat_disc_lbs * broken_prop)) -> disc
+              meat_disc_mort_lbs = (meat_disc_lbs * intact_prop * 0.2) + (meat_disc_lbs * broken_prop)) %>%
+    left_join(ci, by = "Season") %>%
+    select(1, 2, 3, 8, 9, 4:7) -> disc
   }   
   disc
 }
