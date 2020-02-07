@@ -1,15 +1,16 @@
-# Organization of observer data summary
+# Organization of observer data repository
 
-Ben Williams  
-8-2018  
-ben.williams@alaska.gov
+Tyler Jackson  
+Feb 2020
+tyler.jackson@alaska.gov
 
 Data ----
 
-The catch, bycatch, catch_comp, crab_size, logbook, and shell_height data files are downloaded annually from the Kodiak wiki  
-http://kodweb.fishgame.state.ak.us/index/Data_Access:Scallop_Observer
+The catch, bycatch, catch_comp, crab_size, logbook, and shell_height data files are downloaded as needed from the Kodiak wiki  
+http://kodweb.fishgame.state.ak.us/index/Data_Access:Scallop_Observer. Contact Tyler Jackson for .csv files.
 
-General questions about the data should be directed to the scallop observer coordinator: Ryan Burt (ryan.burt@alaska.gov)
+
+General questions about the data should be directed to the scallop observer program: Ryan Burt (ryan.burt@alaska.gov); Alyssa Hopkins (alyssa.hopkins@alaska.gov)
 
  - All functions begin with a `f_`
  - snake_case with underscores is used for all naming conventions
