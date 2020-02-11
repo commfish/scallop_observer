@@ -161,12 +161,12 @@ scallops_comb %>%
   filter(gear_perf == 1) -> scallops_comb
 
 ## correlogram of continuous variables
-scallops_comb %>%
-  select(depth, wind_sp, wave_ht, tidal_rate, haul_speed, area_swept, rw_cpue) %>%
-  GGally::ggcorr(label = T, label_round = 2) -> x
-ggsave("./figures/cpue_standarization/continuous_vars_corr.png", 
-       plot = x, 
-       width = 7, height = 5, units = "in")
+#scallops_comb %>%
+  #select(depth, wind_sp, wave_ht, tidal_rate, haul_speed, area_swept, rw_cpue) %>%
+  #GGally::ggcorr(label = T, label_round = 2) -> x
+#ggsave("./figures/cpue_standarization/continuous_vars_corr.png", 
+      # plot = x, 
+      # width = 7, height = 5, units = "in")
 
 
 
@@ -232,6 +232,17 @@ ggsave("./figures/cpue_standarization/smooth_lon_red_mod_gamma.png",
 ### diagnostics
 gam.check(m_g1) # there are several outlier linear predictors
 plot(x = m_g1$linear.predictors, y = m_g1$residuals, xlim = c(5.5, 7.5))
+
+
+## Fit the a reduced model indentical to m_g1, but with Vessel as a random effect
+m_g1.1 <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(wave_ht) + s(set_lon, by = Bed) + 
+              s(Vessel, bs = "re") + Month + Bed * Year, 
+            data = scallops_comb, gamma = gamma, family=Gamma(link=log), select = T)
+summary(m_g1.1)
+### random effects of Vessel
+print(plot(getViz(m_g1.1), select = 16), pages = 1)
+### diagnostics
+gam.check(m_g1.1) # not really any different that m_g1
 
 
 
