@@ -1,0 +1,1097 @@
+---
+title: "DRAFT 2020 Alaska Statewide Weathervane Scallop Observer Summary"
+author:  |
+  | Tyler Jackson
+  | Alaska Department of Fish and Game, Commercial Fisheries Division, Kodiak, Alaska
+output:
+  bookdown::pdf_document2:
+    toc: yes
+header-includes:
+   - \usepackage{float}
+---
+
+
+```{r, echo = FALSE, message = F}
+YEAR = 2020
+FISHERY = '2018/19'
+```
+
+```{r, echo=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, fig.pos='H')
+```
+
+```{r}
+source(here('code/helper.R'))
+
+```
+
+
+# Background
+This report summarizes weathervane scallop *Patinopecten caurinus* fishery data for data collected by the onboard observer program during the 2018/19 season. 
+The information is provided by the scallop observer program to aid ADF\&G Southeast Region staff in setting guideline harvest levels (GHLs) for the 2019/20 scallop season scheduled to begin July 1. 
+Although scallop vessel operators sign waivers that allow ADF\&G to publish data collected by the onboard observer program, material included in this report such as individual vessel fishing locations, catches, and catch rates are **\textit{Confidential}** and should not be released to the public.
+
+Amendment 3 to the Fishery Management Plan for the Scallop Fishery off Alaska (FMP) delegated authority to manage all aspects of the federal waters scallop fishery except limited access to the State of Alaska. 
+ADF\&G sets GHLs prior to each season, opens and closes scallop fishing areas and districts, oversees the onboard observer program, monitors scallop fishery catch and bycatch inseason, summarizes scallop management activities in department publications, and participates in the federal management process through the North Pacific Fishery Management Council (NPFMC) and Scallop Plan Team (SPT).
+
+Amendment of the weathervane scallop FMP to incorporate Annual Catch Limits (ACLs) required by the 2006 reauthorization of the Magnuson-Stevens Act redefined the statewide overfishing level (OFL) from 1.24 million lb to 1.29 million lb of shucked scallop meats. 
+The change was made to account for all sources of fishing mortality including harvest, discarded scallop catch in the directed fishery, bycatch in other fisheries, and survey catches. 
+The annual ACL will equal 90\% of OFL, or 1.161 million lb of shucked meats, subject to annual approval by the NPFMC. 
+For the ACL amendment analysis leading to the new OFL definition, mortality of scallops discarded in the fishery was assumed to be 20\%, and meat recovery was set at 10\% of scallop round weight.
+
+The state's vessel-based limited entry program for the state-waters scallop fishery sunsetted on December 31, 2013.
+Subsequently, the Alaska Board of Fisheries (BOF) passed a new state waters scallop fishery management plan (FMP).
+Details on the  BOF action are available at  \url{http://www.adfg.alaska.gov/index.cfm?adfg=fisheriesboard.meetinginfo&date=01-07-2014&meeting=kodiak}.
+
+
+ADF\&G managers rely on data collected by the onboard scallop observer program including logbook data on fishing locations, catch, effort, catch-per-unit-effort (cpue), and bycatch. 
+Inseason cpue and bycatch data from onboard observers may also be used in making scallop management decisions such as time/area closures. 
+Summaries of inseason data (when fishing is open) as well as edited observer data summaries from the 2009/10-2018/19 seasons are available inside the ADF\&G firewall at 
+\url{http://kodweb.fishgame.state.ak.us/index/Data_Access:Scallop_Observer:}.
+
+## Problems with cpue data
+
+The use of cpue as an index of abundance is based upon a fundamental relationship in fisheries analysis
+
+\begin{equation}
+C_t/E_t=qN_t,
+\end{equation}
+
+where $C_t$ is catch at time $t$, $E_t$ is the effort expended at time $t$, $N_t$ is abundance at time $t$, and $q$ is the portion of the stock captured by one unit of effort (catchability coefficient). 
+Provided $q$ is constant over time, cpue is proportional to abundance. 
+It is rare that $q$ is constant over the entire exploitation history. 
+
+Fishery statistics presented in this report are affected by many factors. 
+In particular, these data are influenced by the spatial structure of the Alaska scallop population and non-random allocation of fishing effort.
+Scallop cpue is affected by each vessel's choice of fishing location as well as weather, currents, sea state, captain and crew performance, gear tuning, processing capacity, markets, etc. 
+Scallop shell height distributions from observer sampling are likewise affected by fishing locations and discarding as well as by the 4" diameter rings required by Alaska regulations that retain small scallops with lower efficiency than large scallops. 
+
+Standardizing cpue (controlling for variables that affect catch aside from population abundance) is difficult, though standardized data are presented in some sections of this document. \textit{This standardization is a cursory effort and needs to be fully evaluated}.
+
+Standardization was done using generalized additive models (GAMs) generally of form:
+
+\begin{equation}
+(cpue+ \gamma) = f_1(depth~\cdot~bed) + f_2(location\cdot~bed) + f_4(vessel) + bed + year + \epsilon,
+\end{equation}
+
+where $f_i$ are smoothing functions, year is a categorical variable, bed and vessel are incorporated as a random effects, $\gamma$ is a small modifier added to cpue.
+ 
+
+# Data sources and updates
+## Data
+The scallop catch by haul data used in this document originate from the Kodiak Wiki in the "Finalized Observer Data Reports" \url{http://kodweb.fishgame.state.ak.us/apps/scalobs/catchbyhaul/index}. 
+All available data from this location (e.g., shell height, bycatch, crab sizes, scallop observer data) have been included. 
+Age data were provided by Ryan Burt (ryan.burt@alaska.gov). 
+
+Keep in mind when comparing the cpue over different years the changes in spatial sampling (Figures \@ref(fig:akmap) and \@ref(fig:akmap-yr)).
+
+## Analysis updates/changes
+Catch per unit of effort is calculated as retained shelled meat weight/hours dredged (cpue). 
+This is the same as it has been reported in previous summaries. 
+This should be examined to reflect that there are different trawl configurations (e.g., size, number, etc.) and the speed that a trawl is fished, therefore an evaluation by time is not the best descriptor of effort and area-based estimates of cpue should be more precise. 
+\emph{Unfortunately while exploring these data it is obvious that a number of values are "generalized", that is they are rounded, something that may add up to a substantial bias. 
+It would be good to work with the fleet and observer program to try and generate more accurate values (i.e., actual dredge times, not 20 min, 30 min, etc.)}. 
+I've adjusted the cpue estimates with a multiplier of 10\% of the mean cpue following methods in Campbell (2004). 
+
+Since prevous year's management has been heavily reliant on meat-weight CPUE it has been included for examination in 2019. 
+However, round-weight CPUE is more proportionally related to the total number of scallops caught (exploitation rate) than meat-weight. 
+Therefore CPUE analyses in this document have been duplicated for round-weight.
+
+
+
+```{r akmap, fig.cap="Map of all scallop dredge hauls showing fishing locations. Top pane shows fishing locations since the 2009/10 fishing season. Bottom pane shows fishing locations for the 2018/19 fishing season."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/global_map.png"))
+```
+
+```{r akmap-yr, fig.cap="Statewide fishing locations for the last three fishing seasons.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/global_year_map.png"))
+```
+
+\newpage
+
+# Area D
+## Fishery performance
+
+The 2018/19 Yakutat District scallop fishery opened on July 1, 2018 with a GHL of 145,000 lb of scallop meat. 
+Two vessels participated in the fishery (Figure \ref{fig:yakvessel}) harvesting 145,083 lb of scallop meats with a raw cpue of 64 lb meat/dredge hour (Table \ref{table:yakt1}). 
+No distinct trends in size of scallops are observed (scallops are not yet aged from the 2016/17 season), nor do the discard rates or meat retention/round weight diverge substantially from historic rates indicating that the trends are related to abundance. 
+Harvest locations were focused on bed 4 (Figure \ref{fig:yak2}). 
+District 16 was modeled with the rest of Area D, since the management units have been combined.
+
+   \begin{table}[H]
+   \centering
+   \caption{Yakutat District catch summary.}
+   \label{table:yakt1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Number  & Meat wt  & Round wt\\ 
+  		Year	& GHL & (lb meat)  & (lb round)  & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+		1995	& 					& 242,491 &   3,214,968 &   4,712 &   2,597 &   51 & 682\\ 
+		1996	& 					& 238,736 &   3,195,254 &   3,982 &   2,102 &   60 &  802\\ 
+		1997/98	& 				& 242,940 & 	3,282,860 & 	3,956 & 	1,958 & 	61 & 830\\
+		1998/99	& 				& 241,678 & 	3,475,996 & 	4,192 & 	2,193 & 	58 & 830\\
+		1999/00	& 				& 249,681 & 	3,119,103 & 	3,840 & 	1,720 & 	65 & 812\\
+		2000/01	& 250,000	& 195,699 & 	2,734,559 & 	4,241 & 	2,111 & 	46 & 645\\
+		2001/02	& 200,000	& 103,800 & 	1,521,537 & 	2,406 & 	1,096 & 	43 & 632\\
+		2002/03	& 200,000	& 122,718 & 	1,541,867 & 	2,439 & 	1,243 & 	50 & 632\\
+		2003/04	& 200,000	& 160,918 & 	1,939,004 & 	3,358 & 	1,716 & 	48 & 577\\
+		2004/05	& 200,000	& 86,950  & 	1,262,499 & 	2,134 & 	1,194 & 	41 & 592\\
+		2005/06	& 200,000	& 199,351 & 	2,662,031 & 	5,089 & 	2,585 & 	39 & 523\\
+		2006/07	& 150,000	& 150,950 & 	1,771,229 & 	2,817 & 	1,533 & 	54 & 629\\
+		2007/08	& 150,000	& 125,960 & 	1,593,223 & 	2,601 & 	1,416 & 	48 & 613\\
+		2008/09	& 150,000	& 150,289 & 	2,053,912 & 	3,286 & 	1,825 & 	46 & 625\\
+```{r midtblyak, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/yak_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc", digits=0), 
+			      only.contents=TRUE, 
+			      include.rownames=FALSE, 
+			      floating=FALSE, 
+			      include.colnames=FALSE, 
+			      hline.after=NULL, 
+			      format.args = list(big.mark = ","))
+```
+  		\hline	
+	\multicolumn{3}{l}{$^a$lb scallop meat/dredge hour}	\\
+		\multicolumn{3}{l}{$^b$lb scallop round/dredge hour}
+   \end{tabular} 
+   \end{table}
+   
+
+```{r yak2, fig.cap="Area D weathervane scallop fishing locations for the past 10 fishing seasons.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_yak_map.png"))
+```
+
+```{r yakmwcpue, fig.cap="Area D nominal meat weight cpue (lb scallop meat/dredge hour) by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_mw_cpue.png"))
+```
+
+```{r yakrwcpue, fig.cap="Area D nominal round weight cpue (lb scallop round/dredge hour) by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_rw_cpue.png"))
+```
+
+```{r yakrwfit, fig.cap="Area D standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_fit_rw.png"))
+```
+
+```{r yakvessel, fig.cap="Area D vessel effects from the round weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_fit_vessel.png"))
+```
+
+```{r yakroll, fig.cap="Area D standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_fit_roll_rw.png"))
+```
+
+
+```{r yaksh, fig.cap="Area D shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_sh.png"))
+```
+
+```{r yakshd, fig.cap="Area D annual retained and discarded size structure by bed for the 2017/18 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_sh_year.png"))
+```
+
+```{r yakshdyr, fig.cap="Area D Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_rd.png"))
+```
+
+
+```{r yakdis, fig.cap="Area D annual scallop discards by weight."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_dis.png"))
+```
+
+```{r yakdisrat, fig.cap="Area D annual scallop discard ratio - discards/round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_disrat.png"))
+```
+
+```{r yakby, fig.cap="Area D annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_by.png"))
+```
+
+```{r yakbyrat, fig.cap="Area D annual bycatch ratio - bycatch/round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_byrat.png"))
+```
+
+```{r yakclap, fig.cap="Area D annual clapper ratio - clapper/round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_clap.png"))
+```
+
+```{r yakshmw, fig.cap="Area D shell height / meat weight relationships.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/YAK_shmw.png"))
+```
+  
+\newpage  
+
+# Area E 
+
+## Fishery performance
+
+   \begin{table}[H]
+   \centering
+   \caption{Area E catch summary.}
+   \label{table:kit1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Number  & Meat wt  & Round wt\\ 
+  		Year	& GHL & (lb meat)  & (lb round)  & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+		
+```{r midtblki, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/ki_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc", digits=0), 
+			      only.contents=TRUE, 
+			      include.rownames=FALSE, 
+			      floating=FALSE, 
+			      include.colnames=FALSE, 
+			      hline.after=NULL, 
+			      format.args = list(big.mark = ","))
+```
+  		\hline	
+	\multicolumn{3}{l}{$^a$lb scallop meat/dredge hour}	\\
+		\multicolumn{3}{l}{$^b$lb scallop round/dredge hour}
+   \end{tabular} 
+   \end{table}
+   
+   
+```{r ki2, fig.cap="Area E weathervane scallop fishing locations in 2018.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_ki_map.png"))
+```
+
+```{r kimwcpue, fig.cap="Area E nominal meat weight cpue by year.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_mw_cpue.png"))
+```
+
+```{r kirwcpue, fig.cap="Area E nominal round weight cpue by year.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_rw_cpue.png"))
+```
+
+```{r kirwfit, fig.cap="Area E annual round weight standardized cpue by year.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_fit_rw.png"))
+```
+
+```{r kivessel, fig.cap="Area E annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_fit_vessel.png"))
+```
+
+```{r kiroll, fig.cap="Area E standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_fit_roll_rw.png"))
+```
+
+
+```{r kii, fig.cap="Area E annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_sh.png"))
+```
+
+```{r kiid, fig.cap="Area E annual retained and discarded size structure in the west Kayaki Island bed for the 2018/19 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_sh_year.png"))
+```
+
+```{r kiidyr, fig.cap="Area E Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_rd.png"))
+```
+
+
+```{r kidis, fig.cap="Area E annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_dis.png"))
+```
+
+```{r kidisrat, fig.cap="Area E annual scallop discard ratio - discards / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_disrat.png"))
+```
+
+```{r kiby, fig.cap="Area E annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_by.png"))
+```
+
+```{r kibyrat, fig.cap="Area E annual bycatch ratio - bycatch / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_byrat.png"))
+```
+
+```{r kiclap, fig.cap="Area E annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ki_clap.png"))
+```
+
+```{r kishmw, fig.cap="Area E shell height / meat weight relationships.", eval = TRUE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/KI_shmw.png"))
+```
+
+\newpage
+
+# Area K  
+## District KSH  
+### Fishery performance  
+
+The 2018/19 Kodiak Shelikof District scallop fishery opened on July 1, 2018 with a GHL of 25,000 lb of scallop meat. One vessels particpated in the fishery (Figure \ref{fig:kshvessel}) harvesting 25,050 lb scallop meat with a cpue of 46 lb meat/dredge hour (Table \ref{table:ksht1}). 
+No distinct trends in size of scallops are observed (scallops are not yet aged from the 2016/17 season), nor do the discard rates or meat retention/round weight diverge substantially from historic rates indicating that the trends are related to abundance. 
+Harvest locations were reduced from past years (Figure \ref{fig:ksh2}). 
+
+\begin{table}[H]
+   \centering
+   \caption{Kodiak Shelikof District catch summary.}
+   
+   \label{table:ksht1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Numer  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+		  1993/94& 				&	105,017 	& 1,169,664	&	2,491	& 1,684	& 42 & 542\\
+  		1994/95&					&	320,111 	& 3,452,842	&	8,662	& 5,204	& 37 & 565\\
+  		1995/96&	closed		&				&				&			&			&	  &	\\
+  		1996/97&					&  219,305	& 1,877,268	& 3,466	& 1,914	& 63 & 542\\
+  		1997/98&					&  258,346	& 3,097,992	& 5,488	& 3,042	& 47 & 565\\
+  		1998/99&					&  179,870	& 2,128,025	& 4,076	& 2,109	& 44 & 522\\
+  		1999/00&	180,000		&	187,963	& 1,901,953	& 4,295	& 2,004	& 44 & 443\\
+  		2000/01&	180,000		&	180,087	& 1,768,376	& 2,905	& 1,403	& 62 & 609\\
+  		2001/02&	180,000		&	179,198	& 1,830,265	& 3,398	& 1,830	& 53 & 539\\
+  		2002/03&	180,000		&	179,957	& 1,857,466	& 3,799	& 2,071	& 47 & 489\\
+  		2003/04&	180,000		&	180,011	& 1,724,498	& 3,258	& 1,722	& 64 & 529\\
+  		2004/05&	180,000		&	174,622	& 1,641,608	& 3,467	& 1,793	& 50 & 474\\
+  		2005/06&	160,000		&	159,879	& 1,453,656	& 2,278	& 1,217	& 70 & 638\\
+  		2006/07&	160,000		&	161,263	& 1,404,134	& 2,181	& 1,280	& 74 & 644\\
+  		2007/08&	170,000		&	170,224	& 1,695,563	& 2,937	& 1,736	& 58 & 577\\
+  		2008/09	& 150,000	& 150,289& 	2,053,912& 	3,286& 	1,825& 	46 & 625\\
+```{r midtblksh, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/ksh_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+  		\hline	
+  		\multicolumn{3}{l}{$^a$lb scallop meat wt/dredge hour}	\\
+  		\multicolumn{3}{l}{$^b$lb scallop round wt/dredge hour}	\\
+  		\multicolumn{3}{l}{$^1$Inseason closure at 65,000}\\
+  		\multicolumn{3}{l}{$^2$Inseason closure July 30, 2015}\\
+   \end{tabular} 
+   \end{table}
+
+```{r ksh2, fig.cap="Location of the Kodiak Shelikif District 2018 weathervane scallop surveyed beds.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_ksh_map.png"))
+```
+
+```{r kshmwcpue, fig.cap="District KSH annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_mw_cpue.png"))
+```
+
+```{r kshrwcpue, fig.cap="District KSH annual round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_rw_cpue.png"))
+```
+
+```{r kshvessel, fig.cap="District KSH annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_fit_vessel.png"))
+```
+
+```{r kshrwfit, fig.cap="District KSH annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_fit_rw.png"))
+```
+
+```{r kshroll, fig.cap="District KSH standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_fit_roll_rw.png"))
+```
+
+
+```{r kshsh, fig.cap="District KSH annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_sh.png"))
+```
+
+```{r kshshd, fig.cap="District KSH annual retained and discarded size structure by bed for the 2018/19 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_sh_year.png"))
+```
+
+```{r kshshdyr, fig.cap="District KSH Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_rd.png"))
+```
+
+```{r kshdis, fig.cap="District KSH annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_dis.png"))
+```
+
+```{r kshdisrat, fig.cap="District KSH annual scallop discard ratio - discards / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_disrat.png"))
+```
+
+```{r kshby, fig.cap="District KSH annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_by.png"))
+```
+
+```{r kshbyrat, fig.cap="District KSH annual bycatch ratio - bycatch / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_byrat.png"))
+```
+
+```{r kshclap, fig.cap="District KSH annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_clap.png"))
+```
+
+```{r kshshmw, fig.cap="District KSH shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/KSH_shmw.png"))
+```
+
+## District KNE
+### Fishery performance
+
+The 2018/19 Kodiak Northeast District scallop fishery opened on July 1, 2018 with a GHL of 15,000 lb of scallop meat. 
+  One vessel particpated in the fishery (Figure \ref{fig:knevessel}) harvesting 15,210 lb scallop meat with a cpue of 58 lb meat/dredge hour (Table \ref{table:knet1}). 
+  
+
+   \begin{table}[H]
+   \centering
+   \caption{Kodiak Northeast District catch summary.}
+   
+   \label{table:knet1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Numer  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+				1993/94 & 	 		& 155,187 & 	2,208,487 & 6,940 & 	4,099 & 	22 & 	318\\
+	   		1994/95 & 			& 35,517  & 	384,052 & 	1,773 & 	986 & 		20 & 	217\\
+	   		1995/96 & 	 		& closed  & 		 &  &  &  & 				\\
+	   		1996/97 & 	 		& 11,430  & 	147,269 & 	581 & 		319 & 	20 & 	253\\
+	   		1997/98 & 	 		& 95,858  & 	1,144,405 & 2,604 & 	1,418 & 	37 & 	439\\
+	   		1998/99 & 	 		& 120,010 & 	1,366,648 & 2,747 & 	1,331 & 	44 & 	498\\
+	   		1999/00 & 	75,000 & 	77,119 & 	952,972 & 	1,383 & 	673 & 56	 & 689\\
+	   		2000/01 & 	80,000 & 	79,965 & 	681,198 & 	1,101 & 	556 & 73	 & 619\\
+	   		2001/02 & 	80,000 & 	80,470 & 	822,110 & 	1,142 & 	591 & 70 & 	720\\
+	   		2002/03 & 	80,000 & 	79,987 & 	871,918 & 	1,350 & 	725 & 59 & 	646\\
+	   		2003/04 & 	80,000 & 	80,003 & 	747,517 & 	1,248 & 	684 & 64 & 	599\\
+	   		2004/05 & 	80,000 & 	79,472 & 	848,527 & 	1,227 & 	662 & 65 & 	692\\
+	   		2005/06 & 	80,000 & 	80,034 & 	831,378 & 	1,759 & 	881 & 46 & 	473\\
+	   		2006/07 & 	90,000 & 	74,902 & 	703,388 & 	1,168 & 	688 & 64 & 	602\\
+	   		2007/08 & 	90,000 & 	73,276 & 	822,697 & 	1,170 & 	671 & 63 & 	703\\
+	   		2008/09 & 	90,000 & 	75,030 & 	808,277 & 	1,356 & 	793 & 55 & 	596\\
+```{r midtblkne, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/kne_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+	   		\hline	
+	   		\multicolumn{3}{l}{$^a$lb scallop meat/dredge hour}	\\
+	   		\multicolumn{3}{l}{$^b$lb scallop round/dredge hour}\\
+   \end{tabular} 
+   \end{table}
+
+```{r kne2, fig.cap="Location of the Kodiak Northeast District weathervane scallop fishing locations in 2018/19.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_kne_map.png"))
+```
+
+````{r knemwcpue, fig.cap="District KNE annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_mw_cpue.png"))
+```
+
+```{r knerwcpue, fig.cap="District KNE annual round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_rw_cpue.png"))
+```
+
+```{r knevessel, fig.cap="District KNE annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_fit_vessel.png"))
+```
+
+```{r knerwfit, fig.cap="District KNE annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_fit_rw.png"))
+```
+
+```{r kneroll, fig.cap="District KNE standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_fit_roll_rw.png"))
+```
+
+
+```{r knesh, fig.cap="District KNE annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_sh.png"))
+```
+
+```{r kneshd, fig.cap="District KNE annual retained and discarded size structure by bed for the 2018/19 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_sh_year.png"))
+```
+
+```{r kneshdyr, fig.cap="District KNE Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_rd.png"))
+```
+
+
+```{r knedis, fig.cap="District KNE annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_dis.png"))
+```
+
+```{r knedisrat, fig.cap="District KNE annual scallop discard ratio - discards/round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_disrat.png"))
+```
+
+```{r kneby, fig.cap="District KNE annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_by.png"))
+```
+
+```{r knebyrat, fig.cap="District KNE annual bycatch ratio - bycatch/round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_byrat.png"))
+```
+
+```{r kneclap, fig.cap="District KNE annual clapper ratio - clapper/round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_clap.png"))
+```
+
+```{r kneshmw, fig.cap="District KNE shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/KNE_shmw.png"))
+```
+
+## District KSE
+### Fishery performance
+
+
+The 2018/19 Kodiak Southeast District scallop fishery opened on July 1, 2018 with a GHL of 15,000 lb of scallop meat. 
+  One vessel particpated in the fishery harvesting 469 lb scallop meat with a cpue of 8 lb meat/dredge hour (Table \ref{table:kset1}). 
+  
+
+   \begin{table}[H]
+   \centering
+   \caption{Kodiak Southeast District catch summary.}
+   
+   \label{table:kset1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Numer  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+```{r midtblkse, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/kse_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+	   		\hline	
+	   		\multicolumn{3}{l}{$^a$lb scallop meat/dredge hour}	\\
+	   		\multicolumn{3}{l}{$^b$lb scallop round/dredge hour}\\
+   \end{tabular} 
+   \end{table}
+
+```{r kse2, fig.cap="Location of the Kodiak Southeast District weathervane scallop fishing locations in 2018/19.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_kse_map.png"))
+```
+
+````{r ksemwcpue, fig.cap="District KSE annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_mw_cpue.png"))
+```
+
+```{r kserwcpue, fig.cap="District KSE annual round weight cpue by bed.", eval = F}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_rw_cpue.png"))
+```
+
+```{r ksevessel, fig.cap="District KSE annual vessel effects from the meat weight cpue standardization model.", eval = F}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_fit_vessel.png"))
+```
+
+
+```{r kserwfit, fig.cap="District KSE annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_fit_rw.png"))
+```
+
+
+```{r kseroll, fig.cap="District KSE standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_fit_roll_rw.png"))
+```
+
+
+```{r ksesh, fig.cap="District KNE annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_sh.png"))
+```
+
+```{r kseshd, fig.cap="District KNE annual retained and discarded size structure by bed for the 2018/19 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_sh_year.png"))
+```
+
+```{r kseshdyr, fig.cap="District KSE Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_rd.png"))
+```
+
+
+```{r ksedis, fig.cap="District KSE annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_dis.png"))
+```
+
+```{r ksedisrat, fig.cap="District KSE annual scallop discard ratio - discards / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_disrat.png"))
+```
+
+```{r kseby, fig.cap="District KSE annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_by.png"))
+```
+
+```{r ksebyrat, fig.cap="District KSE annual bycatch ratio - bycatch / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_byrat.png"))
+```
+
+```{r kseclap, fig.cap="District KSE annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kse_clap.png"))
+```
+
+```{r kseshmw, fig.cap="District KSE shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/KSE_shmw.png"))
+```
+
+\newpage
+
+## District KSW
+### Fishery performance
+
+  The 2017/18 Kodiak Southwest District scallop fishery opened on July 1, 2017 with a GHL of 25,000 lb of scallop meat. One vessel particpated in the fishery (Figure \ref{fig:kswvessel}) harvesting 25,020 lb scallop meat with a cpue of 66 lb meat/dredge hour (Table \ref{table:kswt1}). 
+  
+   \begin{table}[H]
+   \centering
+   \caption{Kodiak Southwest District catch summary.}
+   
+   \label{table:kswt1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Numer  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+```{r midtblksw, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/ksw_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+  		\hline	
+  		\multicolumn{3}{l}{$^a$lb scallop meat wt/dredge hour}	\\
+  		\multicolumn{3}{l}{$^b$lb scallop round wt/dredge hour}	\\
+  		\multicolumn{4}{l}{2015/16 Inseason closure due to Tanner bycatch}\\
+   \end{tabular} 
+   \end{table}
+   
+  
+
+```{r ksw2, fig.cap="Location of the Kodiak Southwest District .", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_ksw_map.png"))
+```
+
+```{r kswmwcpue, fig.cap="District KSW annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_mw_cpue.png"))
+```
+
+```{r kswrwcpue, fig.cap="District KSW annual round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_rw_cpue.png"))
+```
+
+```{r kswvessel, fig.cap="District KSW annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_fit_vessel.png"))
+```
+
+```{r kswrwfit, fig.cap="District KSW annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_fit_rw.png"))
+```
+```{r kswroll, fig.cap="District KSW standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_fit_roll_rw.png"))
+```
+
+
+```{r kswsh, fig.cap="District KSW annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_sh.png"))
+```
+
+```{r kswshd, fig.cap="District KSW annual retained and discarded size structure by bed for the 2017/18 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_sh_year.png"))
+```
+
+```{r kswshdyr, fig.cap="District KSW Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_rd.png"))
+```
+
+
+```{r kswdis, fig.cap="District ksw annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_dis.png"))
+```
+
+```{r kswdisrat, fig.cap="District ksw annual scallop discard ratio - discards / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_disrat.png"))
+```
+
+```{r kswby, fig.cap="District ksw annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_by.png"))
+```
+
+```{r kswbyrat, fig.cap="District ksw annual bycatch ratio - bycatch / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_byrat.png"))
+```
+
+```{r kswclap, fig.cap="District KSW annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksw_clap.png"))
+```
+
+```{r kswshmw, fig.cap="District KSW shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/KSW_shmw.png"))
+```
+
+\newpage
+
+# Area M
+## Fishery performance
+
+  The 2017/18 Area M scallop fishery opened on July 1, 2017 with a GHL of 15,000 lb of scallop meat for Unimak Bight. 
+  One vessel particpated in the fishery (Figure \ref{fig:mvessel}) harvesting 15,250 lb scallop meat with a cpue of 47 lb meat/dredge hour (Table \ref{table:mt1}). 
+  The area between longitude -160 to -161 had a GHL set at 7,500 lb - no effort was reported for this area.
+  
+  \begin{table}[H]
+   \centering
+   \caption{Area M catch summary.}
+   
+   \label{table:mt1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Numer  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+    	1993/94&   		      &	112,087	&	         & 	1,847	&	957	&	61	& \\
+		1994/95&		         & 65,282	   &	         & 	1,664	&	1,115	&	39	& \\
+		1995/96&	closed      &			   &	         & 			&			&	   & \\
+		1996/97&	200,000     &	12,560   & 128,800	& 	327	&	177	&	38	& 394\\
+		1997/98&	200,000     &	51,616   & 597,546	& 	1,752	&	1,050	&	29	& 341\\
+		1998/99&	200,000     &	63,290   & 617,039	& 	1,612	&	681	&  39	& 383\\
+		1999/00&	200,000     &	75,535   & 778,838	& 	2,025	&	1,099	&	37	& 385\\
+		2000/01&	33,000      &	7,660	   & 92,874	   & 	320	&	188	&  24	& 290\\
+		2001/02&	closed      &			   &	         & 			&		   &		& \\
+		2002/03&	closed      &			   &	         & 			&		   &		& \\
+		2003/04&	10,000      &	No Effort&	         & 			&		   &	   & \\			
+		2004/05&	10,000      &	No Effort&	         & 	      &		   &	   & \\		
+		2005/06&	10,000      &	No Effort&	         & 	      &        &	   & \\		
+		2006/07&	25,000      &	155      &2,936	   & 	30    &	73    & 5	& 99\\
+		2007/08&	10,000      &	No Effort&	         &        &        &		& \\	
+		2008/09& 10,000		&		2,460	&	31,870	&	154	&	114	&	16	& 207\\
+		2009/10& closed		&				&				&			&			&		& \\
+		2010/11& closed		&				&				&			&			&		& \\
+		2011/12& closed		&				&				&			&			&		& \\
+```{r midtblm, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/m_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+				\hline
+\end{tabular}
+\end{table}
+
+```{r m2, fig.cap="Location of the Area M weathervane scallop fishing effort.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_m_map.png"))
+```
+
+```{r mmwcpue, fig.cap="Area M annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_mw_cpue.png"))
+```
+
+```{r mrwcpue, fig.cap="Area M annual round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_rw_cpue.png"))
+```
+
+```{r mvessel, fig.cap="Area M annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_fit_vessel.png"))
+```
+
+
+```{r mrwfit, fig.cap="Area M annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_fit_rw.png"))
+```
+
+```{r mroll, fig.cap="Area M standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_fit_roll_rw.png"))
+```
+
+```{r msh, fig.cap="Area M annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_sh.png"))
+```
+
+```{r mshd, fig.cap="Area M annual retained and discarded size structure by bed for the 2017/18 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_sh_year.png"))
+```
+
+```{r mshdyr, fig.cap="Area M Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_rd.png"))
+```
+
+
+```{r mdis, fig.cap="Area M annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_dis.png"))
+```
+
+```{r mdisrat, fig.cap="Area M annual scallop discard ratio - discards / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_disrat.png"))
+```
+
+```{r mby, fig.cap="Area M annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_by.png"))
+```
+
+```{r mbyrat, fig.cap="Area M annual bycatch ratio - bycatch / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_byrat.png"))
+```
+
+```{r mclap, fig.cap="Area M annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_clap.png"))
+```
+
+```{r mshmw, fig.cap="District M shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/M_shmw.png"))
+```
+
+\newpage 
+
+# Area O
+## Fishery performance
+
+ The 2016/17 Area O scallop fishery opened on July 1, 2016 with a GHL of 10,000 lb of scallop meat (5,000 Bering, 5,000 Pacific). 
+ One vessel particpated in the fishery (Figure \ref{fig:ovessel}) harvesting 285 lb scallop meat with a raw cpue of 12 lb meat/dredge hour (Table \ref{table:yakt1}). 
+ No distinct trends in size of scallops are observed (scallops are not yet aged from the 2016/17 season), nor do the discard rates or meat retention / round weight diverge substantially from historic rates indicating that the trends are related to abundance. 
+ Harvest locations were restricted compared to previous years (Figure \ref{fig:yak2}). 
+ For prediction purposes the depth and locations are held at the mode values by bed and the random effect was averaged. 
+ District 16 was modeled with the rest of Area D, cince the management units have been combined.
+ Results of the fishery have been included seperately here for continuity.
+
+\begin{table}[H]
+   \centering
+   \caption{Area O catch summary.}
+   
+   \label{table:ot1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Number  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+			1993/94  & 170,000  &38,731  &         & 838    &	   & 46 & \\
+	 		1994/95  & 170,000  & 1,931  & 	      & 81     &	   & 24 & \\
+	 		1995/96  & 170,000  &26,950  &         & 1,047  &     & 26 &  \\
+	 		1996/97  & 170,000  &        &         &        &	   &    & \\
+	 		1997/98  & 170,000  & 5,790  & 55,350  & 160    &		& 36 & 345\\
+	 		1998/99	& 110,000  & 46,462 & 424,028 & 941    &		& 49 & 451\\
+	 		1999/00	& 110,000  & 6,465  & 66,420  & 278    &	   & 23 & 268\\
+	 		2000/01	&	closed  &        &         &        &	   &    & \\
+	 		2001/02	&	closed  &        &         &        &	   &    & \\
+	 		2002/03	&	10,000  & 6,000  & 59,066  & 177    &	   & 34 & 333\\
+	 		2003/04	&	closed  &        &         &        &	   &    & \\
+	 		2004/05	&	closed  &        &         &        &	   &    & \\
+	 		2005/06	&	closed  &        &         &        &	   &    & \\
+	 		2006/07	&	closed  &        &         &        &	   &    & \\
+	 		2007/08	&	closed  &        &         &        &	   &    & \\
+	 		2008/09	&	10,000  &10,040  & 93,077  & 191	   &	   & 53 & 488\\
+```{r midtblo, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/o_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+	   		\hline	
+	   		\multicolumn{3}{l}{$^a$lb scallop meat/dredge hour}	\\
+	   		\multicolumn{3}{l}{$^b$lb scallop round/dredge hour}\\
+   \end{tabular} 
+   \end{table}
+
+```{r o2, fig.cap="Location of the Area O weathervane scallop fishing effort.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_o_map.png"))
+```
+
+```{r omwcpue, fig.cap="Area O annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_mw_cpue.png"))
+```
+
+```{r orwcpue, fig.cap="Area O annual round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_rw_cpue.png"))
+```
+
+```{r ovessel, fig.cap="Area O annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_fit_vessel.png"))
+```
+
+```{r orwfit, fig.cap="Area O annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_fit_rw.png"))
+```
+
+```{r oroll, fig.cap="Area O standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_fit_roll_rw.png"))
+```
+
+
+```{r osh, fig.cap="Area O annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/m_sh.png"))
+```
+
+```{r oshd, fig.cap="Area O annual retained and discarded size structure by bed for the 2017/18 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_sh_year.png"))
+```
+
+```{r oshdyr, fig.cap="Area O Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_rd.png"))
+```
+
+
+```{r odis, fig.cap="Area O annual scallop discards by weight.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_dis.png"))
+```
+
+```{r odisrat, fig.cap="Area O annual scallop discard ratio - discards / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_disrat.png"))
+```
+
+```{r oby, fig.cap="Area O annual bycatch numbers.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_by.png"))
+```
+
+```{r obyrat, fig.cap="Area O annual bycatch ratio - bycatch / round weight.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_byrat.png"))
+```
+
+```{r oclap, fig.cap="Area O annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/o_clap.png"))
+```
+
+```{r oshmw, fig.cap="Area O shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/O_shmw.png"))
+```
+
+\newpage
+
+# Area Q
+## Fishery performance
+
+ The 2017/18 Area Q scallop fishery opened on July 1, 2017 with a GHL of 7,500 lb of scallop meat. One vessel participated in the fishery (Figure \ref{fig:qvessel}) harvesting 7,535 lb scallop meat with a cpue of 24 lb meat/dredge hour (Table \ref{table:qt1}). 
+
+   \begin{table}[H]
+   \centering
+   \caption{Area Q catch summary.}
+   
+   \label{table:qt1}
+    	\begin{tabular}{lcrrcccc}
+  		&&  \multicolumn{2}{c}{Retained catch} & Dredge  & Number  & Meat wt  & Round wt\\ 
+  		Year	&GHL&(lb meat)  & (lb round)              & hours   & hauls   & cpue$^a$ & cpue$^b$    \\ 
+  		\hline	
+  			1993/94&					&	284,414	&				&		5,764	&		3,326	& 49 &\\
+	 		1994/95&					&	505,439	&				&	  11,113	&		6,508	& 45 &\\
+	 		1995/96&	closed		&				&				&				&           &    &	\\
+	 		1996/97&	600,000		&	150,295	& 1,428,060 &		2,313	&		951	& 65 & 620\\
+	 		1997/98&	600,000		&	97,002	& 1,077,150 &		2,246	&		1,280	& 43 & 492\\
+	 		1998/99	&	400,000	&	96,795	& 1,189,021 &		2,319	&		1,178	& 42 & 526\\
+	 		1999/00	&	400,000	&	164,481	& 1,844,765 &		3,294	&		1,514	& 50 & 563\\
+	 		2000/01	&	200,000	&	205,520	& 2,376,601 &		3,355	&		1,564	& 61 & 710\\
+	 		2001/02	&	200,000	&	140,365	& 1,700,500 &		3,072	&		1,401	& 46 & 559\\
+	 		2002/03	&	105,000	&	90,562	& 951,938 	&		2,038	&		1,010	& 44 & 468\\
+	 		2003/04	&	105,000	&	42,590	& 537,552 	&		1,020	&		517	& 41 & 527\\
+	 		2004/05	&	50,000	&	10,050	& 128,128 	&		275	&		145	& 37 & 475\\
+	 		2005/06	&	50,000	&	23,241	& 231,700 	&		602	&		303	& 39 & 386\\
+	 		2006/07	&	50,000	&	48,775	& 529,590 	&		1,138	&		583	& 43 & 466\\
+	 		2007/08	&	50,000	&	50,299	& 697,288 	&		1,083	&		540	& 46 & 647\\
+	 		2008/09	&	50,000	&	49,995	& 502,450 	&		960	&		642	& 52 & 525\\
+```{r midtblq, results='asis', eval = T}	
+read_csv(paste0("../../tables/", YEAR, "/q_cpue_tbl.csv")) -> x
+			print(xtable(x,align="llcrrcccc",digits=0), only.contents=TRUE, include.rownames=FALSE, 
+					floating=FALSE, include.colnames=FALSE, hline.after=NULL, format.args = list(big.mark = ","))
+```
+  		\hline	
+  		\multicolumn{3}{l}{$^a$lb scallop meat wt/dredge hour}	\\
+  		\multicolumn{3}{l}{$^b$lb scallop round wt/dredge hour}	\\
+  		\multicolumn{4}{l}{2015/16 Inseason closure due to Tanner bycatch}\\
+   \end{tabular} 
+   \end{table}
+
+
+```{r q2, fig.cap="Location of the Area Q weathervane scallop fishing effort.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/district_q_map.png"))
+```
+
+```{r qmwcpue, fig.cap="Area Q annual meat weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_mw_cpue.png"))
+```
+
+```{r qrwcpue, fig.cap="Area Q annual round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_rw_cpue.png"))
+```
+
+```{r qvessel, fig.cap="Area Q annual vessel effects from the meat weight cpue standardization model.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_fit_vessel.png"))
+```
+
+```{r qrwfit, fig.cap="Area Q annual standardized round weight cpue by bed.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_fit_rw.png"))
+```
+
+```{r qroll, fig.cap="Area Q standardized round weight cpue by bed with mean cpue and last 5-year mean.", eval = T}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_fit_roll_rw.png"))
+```
+
+
+```{r qsh, fig.cap="Area Q annual shell heights by bed.", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_sh.png"))
+```
+
+```{r qshd, fig.cap="Area Q annual retained and discarded size structure by bed for the 2017/18 fishery", fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_sh_year.png"))
+```
+
+```{r qshdyr, fig.cap="Area Q Retained and discarded size structure by year.", eval = T, fig.pos='H'}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_rd.png"))
+```
+
+```{r qdis, fig.cap="Area Q annual scallop discards by weight."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_dis.png"))
+```
+
+```{r qdisrat, fig.cap="Area Q annual scallop discard ratio - discards / round weight."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_disrat.png"))
+```
+
+```{r qby, fig.cap="Area Q annual bycatch numbers."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_by.png"))
+```
+
+```{r qbyrat, fig.cap="Area Q annual bycatch ratio - bycatch / round weight."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_byrat.png"))
+```
+
+```{r qclap, fig.cap="Area Q annual clapper ratio - clapper / round weight.", eval = FALSE}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_clap.png"))
+```
+
+```{r qshmw, fig.cap="Area Q shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/Q_shmw.png"))
+```
+
+# All Areas
+
+## Shell height - meat weight
+
+```{r allshmw, fig.cap="Shell height / meat weight relationships."}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/all_shmw.png"))
+```
+
+\pagebreak
+
+## Data-limited explorations
+
+Two methods were explored: 
+1. Bayesian statespace surplus production model (BSM)
+2. Catch only stock assessment model (CMSY). 
+
+Both originate from work in Froese R, Demirel N, Coro G, Kleisner KM,Winker H (2017) Estimating fisheries reference points
+from catch and resilience. Fish and Fisheries 18(3): 506-526. \url{http://onlinelibrary.wiley.com/doi/10.1111/faf.12190/abstract}
+
+and were evaluated using code from Chris Free's `datalimited2` project \url{https://github.com/cfree14/datalimited2}.
+
+\pagebreak
+
+
+```{r yakbsm, fig.cap="Area D Bayesian statespace surplus production model", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_bsm.png"))
+```
+
+```{r yakcmsy, fig.cap="Area D Catch only stock assessment model.", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/yak_cmsy.png"))
+```
+
+
+```{r kshbsm, fig.cap="District KSH Bayesian statespace surplus production model", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_bsm.png"))
+```
+
+```{r kshcmsy, fig.cap="District KSH Catch only stock assessment model.", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/ksh_cmsy.png"))
+```
+
+
+```{r knebsm, fig.cap="District KNE Bayesian statespace surplus production model", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_bsm.png"))
+```
+
+```{r knecmsy, fig.cap="District KNE Catch only stock assessment model.", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/kne_cmsy.png"))
+```
+
+```{r qbsm, fig.cap="Area Q Bayesian statespace surplus production model", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_bsm.png"))
+```
+
+```{r qcmsy, fig.cap="Area Q Catch only stock assessment model.", fig.pos='H', fig.width=6.5}
+knitr::include_graphics(paste0("../../figs/", YEAR, "/q_csmy.png"))
+```
+
+
+
