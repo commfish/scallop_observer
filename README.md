@@ -12,25 +12,30 @@ http://kodweb.fishgame.state.ak.us/index/Data_Access:Scallop_Observer. Contact T
 
 General questions about the data should be directed to the scallop observer program: Ryan Burt (ryan.burt@alaska.gov); Alyssa Hopkins (alyssa.hopkins@alaska.gov)
 
- - All functions begin with a `f_`
+ - All custom functions begin with a `f_` and are sourced within a separate script
  - snake_case with underscores is used for all naming conventions
  - a capital words are factors 
- 
- Process
- 
-  - The raw data are cleaned up, the fishing year is added, names are changed etc. This has to occur at the beginning by running the scripts in `0_data_cleaning.R`
-  - All functions are stored in the `functions.R` file
-  - Libraries and map data are stored in the `helper.R` file
-  - the functions and helper files are sourced in the analysis scripts.
   
 The primary folder setup is:
 
  - code
- 
- - data
- - figure
+   - age_estimation
+   - cpue_standardization
+   - discard_estimation
+   - maps
+   - misc
+   - safe
+ - data (see README file therein)
+ - figures
+   - age_estimation
+   - cpue_standardization
+   - discard_estimation
+   - observer_data_report
+   - safe
  - output
+   - safe
  - text
+   - age_estimation
 
 
 
