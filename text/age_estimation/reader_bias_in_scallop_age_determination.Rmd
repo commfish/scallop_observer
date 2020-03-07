@@ -1,0 +1,120 @@
+---
+title: "Reader Bias in Scallop Age Determination"
+author: "Tyler Jackson"
+date: "10/25/2019"
+output: pdf_document
+header-includes:
+ \usepackage{graphicx}
+ \usepackage{hanging}
+ \usepackage{float}
+ \usepackage{caption}
+ \floatplacement{figure}{!ht}
+---
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(tidyverse)
+```
+
+### Background  
+Scallop shells collected by at-sea observers during weathervane *Patinopecten caurinus* fisheries from 1996 - 2015 were aged by ADF&G staff at Kodiak and Homer laboratories following each fishing season. Shells were aged by viewing upper valves under a microscope, and locating individual annuli based spatial patterns among intermediate circuli (Spafard and Rosenkranz 2014). Age readers also collected various shell height-at-annulus measurements throughout the years (Table 1), along with total annuli (i.e. age) and total shell height (mm). Though the amount of data collected at intermediate annuli varies among years and readers, the general process of aging (i.e., marking the first or second annulus and counting outwards) should have remained constant (Ryan Burt, personal communictaion).   
+
+In total, ages were recorded for $N$ = 26,807 scallops by six readers (5 from Kodiak, 1 from Homer) who varied by fishery year (Table 1). Individual shells are distributed across three main spatiotemporal strata including fishery, district and bed. The proportion of shells from a given bed within each district varied by year, and with exception to the years 2000 - 2002, shells within each year were aged by only one or two readers (Figure 1).
+
+During an exploratory analysis of first annuli, it was noted that variation in shell height may be due to reader bias. This document provides a cursory examination of reader bias within the observer shell age dataset. For brevity, this analysis focuses on the Kodiak Northeast (KNE), Kodiak Shelikof (KSH), and Yakutat (YAK) districts during the 2000 - 2015 fishing seasons which account for most of the data. Below I discuss some patterns observed in the data among readers, but only include figures which illustrate those patterns most clearly. Data visualizations and summary statistics for all districts, beds, and readers can be found in the script file, "age_reader_examination.R".
+
+### Objective   
+1) Examine reader bias in data regarding total age and shell height (i.e., one data point for one scallop);     
+2) Examine reader bias in shell height-at-annulus data (i.e., multiple data points for one scallop), as available.  
+
+### Examination  
+Shell height at age data (i.e., one data point for one scallop) was evaluated by examining the distribution of shell height and age recorded by each reader. Since a single age reader tended to dominate a span of fishing seasons, a large part of this analysis focused on "year groups" which represent breaks in the primary reader. These include: 2000 - 2005, 2006 - 2014, and 2015. In addition to examing differences in observed data, I modeled von Bertalanffy growth for each year group and district as a non-linear least squares regression with parameterization:  
+$$H_{t} = H_{\infty}(1-e^{-k(t-t_{0})}) $$  
+where $H_{a}$ is shell height at age at time ($t$), $H_{\infty}$ is the asymptotic shell height at age, $t$ is the age at time ($t$), $t_{0}$ is the age at which shell height would be zero, and $k$ is the growth rate coefficient. Fitted growth curves and observed data were compared among year groups to assess differences in the shell height at age relationship derived from each reader or combination of readers' data.   
+
+Age readers during the years 2000 - 2005 aged shells within the KNE and KSH districts that were marginally smaller and younger, on average, than during the years 2006 - 2015 (Figure 2; Figure 3). However, shell height-at-age models fit to each year group suggest shells aged from 2000 - 2005 and later years were younger at a given shell height within the KNE district (Figure 4a). Differences in shell-height at age among reader year groups within the KSH and YAK districts are less obvious (Figure 4b, c).  
+
+Shell height at the first annulus and intermediate annuli were examined by grouping data into cohorts (i.e., year at age-0), which were estimated by substracting the determined age from the fishery year. Shell height-at-annulus data was then compared among cohorts and reader year groups. In several cohorts, readers based in Kodiak recorded first annuli measurements that were substantially larger than those recorded by the reader based in Homer (Figure 5). This pattern also remained when examining cohorts by bed, instead of district (see script for detail). No obvious discrepancies among reader groups existed at intermediate annulus heights, as Homer based readers did not record heights of intermediate annuli. For Kodiak based readers, shell height at the first annulus had a positive relationship with shell height at intermediate annuli that weakened as scallops aged (Table 2; Figure 6), which corresponds to the trend of shell height-at-age within each district (Figure 4). 
+
+### Conclusions  
+Overall, the degree of reader bias in estimates of total age remains unclear. Differences in shell height at age that could be attributed to breaks in age reader are made obscure by variation in the proportion of scallops sampled from each bed, as well as the potential for a true inter-annual change in the size and age composition of the population. In contrary, we should be able to avoid much of these confounding issues by examining shell height at intermediate annuli when shells are grouped by their estimated cohort and collection location. Within these refined groups, measurements recorded by different readers might appear as samples from the same distribution if scallops were indeed collected from the same cohort and population. The caveat to this approach, though, is that it depends on the accuracy of total age to estimate cohort.
+
+The consistent pattern of larger first annulus heights being recorded by Kodiak staff verus Homer staff highlights a potential reader bias, though closer examination provides some support for the contrary. Larger shell height at the first annulus typically led to larger shell heights at subsequent annuli among Kodiak based readers, and growth of individual shells followed the trajectory of a typical growth curve without odd jumps from the frist to second, or subsequent annuli (i.e., patterns which may be expected if first annulus measurements are accurate). Since smaller first annuli were recorded in scallops aged in later years, it is possible that the difference between readers could be related to the times at which scallops were caught, that is, scallops caught in earlier years (2000 - 2014) and aged by Kodiak staff may have been truly larger at age and were caught the fishery sooner than scallops caught and aged by Homer staff in 2015. Although that seems logical, it also seems highly coincidential that this pattern also corresponds to breaks in reader. If Kodiak based age readers were in fact misidentifying first annuli, total ages may be underestimated, which is somewhat reflected in the shell height-at-age models constructed by reader (Figure 4). 
+
+Identifying the first annulus is a critical step in the aging method as it provides the starting point for counting subsequent annuli. If the first annulus is misidentified, it would not be difficult to arrive at an incorrect total age for the specimen. The rigorous quality control process currently implemented by the Mark, Tag, and Age Laboratory should greatly reduce such errors (Siddon et al. 2017); however, these methods have only been in place for a short period of time compared to the length of the existing time series. This brief analysis demonstrates the need for users of this data to carefully evaluate the effect of age reader in the context of their analyses, and to account for such an effect whenever necessary. It may also be prudent to apply quality control measures on a subset of archived shells so that the extent of reader bias can be made known and questionable data can be flagged.  
+
+### References  
+
+\begin{hangparas}{.25in}{1}
+Spafard, M. A., and G. E. Rosenkranz. 2014. Age and growth of weathervane scallops $Patinopecten Caurinus$ from the Alaska statewide scallop fishery, 1996–2013. Alaska Department of Fish and Game, Fishery Manuscript Series No. 14-03, Anchorage.  
+
+Siddon, C., Q. Smith, K. McNeel, D. Oxman, and K. Goldman. 2017. Protocol for Estimating Age of Weathervane Scallops $Patinopecten caurinus$ in Alaska. Alaska Department of Fish and Game, Special Publication No. 17-07, Anchorage.
+\end{hangparas}
+
+### Tables
+
+```{r}
+# table of readers
+data.frame(reader_id = c(1, 2, 4, 5, 7, 8),
+           Reader_name = c("Charlette Fullinck", "Heidi Morrison", "Marsha Spafard", "Steve Thompson", "Amanda Bowers", "Carla Milburn"),
+           ADFG_lab = c("Kodiak", "Kodiak", "Kodiak", "Kodiak", "Kodiak", "Homer"),
+           scallops_aged = c(7393, 508, 14677, 331, 1929, 1969),
+           scallops_w_1st_annuli = c(1858, 91, 1644, 308, 66, 1959),
+           scallops_w_int_annuli = c(2070, 135, 2857, 321, 66, 9),
+           Years_active = c("2000 - 2005", "2001", "1996 - 2004, 2006 - 2014", "2001", "1997, 2000, 2002, 2007, 2009 - 2014", "2015")) %>%
+  mutate_if(is.numeric, format, big.mark = ",") %>%
+  rename("Reader ID" = reader_id, "Reader Name" = Reader_name, "ADF&G Lab" = ADFG_lab, "N" = scallops_aged,
+         "N First Annuli" = scallops_w_1st_annuli, "N Interm. Annuli" = scallops_w_int_annuli, "Fishery Years" = Years_active) %>%
+  knitr::kable(format = "latex", booktabs = T,  linesep = "", align = c("c", "l", "l", "c", "c", "c", "l"), caption = "Age reader ID, name, ADF\\&G location, number of scallops aged (N), number of scallops with of annuli measured, and number of scallops with intermediate annuli (other than the first) measured.") %>%
+  kableExtra::kable_styling(position = "center", latex_options = c("HOLD_position", "scale_down"))
+```
+
+
+```{r}
+read_csv("../tables/age_reader/age_reader_ols_mod_table3.csv") %>%
+  select(-rse, -p) %>%
+  mutate_at(3:4, round, 2) %>%
+  pivot_wider(names_from = district, values_from = c(r2, coef, coef_ci)) %>%
+  select(1, 3, 6, 9, 4, 7, 10, 2, 5, 8) %>%
+  knitr::kable(format = "latex", booktabs = T,  linesep = "", align = "c",
+               col.names = c("Annulus", "$R^{2}$", "$b$", "95\\% CI ($b$)", "$R^{2}$", "$b$", "95\\% CI ($b$)", "$R^{2}$", "$b$", "95\\% CI ($b$)"),
+               escape = F,
+               caption = "Proportion of variance explained ($R^{2}$) and regression coeficient ($b$) and 95\\% CI ($b$) associated with linear models of intermediate annulus height (mm) as a function of first annulus height (mm) within KNE, KSH, and YAK districts. All linear relationships were significant ($a$ = 0.05).") %>%
+  kableExtra::add_header_above(c(" " = 1, "KNE" = 3, "KSH" = 3, "YAK" = 3)) %>%
+  kableExtra::kable_styling(position = "center", latex_options = "HOLD_position")
+```
+
+### Figures  
+
+\begin{figure}
+    \includegraphics[width = \textwidth]{../figures/age_reader/age_reader_fig1.png}
+    \caption{Number of scallops aged by each reader collected during each season from 1996 - 2015.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width = \textwidth]{../figures/age_reader/age_reader_fig2.png}
+    \caption{Density plots of shell heights of aged scallops from KNE, KSH, and YAK districts during each year group.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width = \textwidth]{../figures/age_reader/age_reader_fig3.png}
+    \caption{Density plots of ages recorded by each reader year group of scallops collected from KNE, KSH, and YAK districts.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width = \textwidth]{../figures/age_reader/age_reader_fig4.png}
+    \caption{Density plots of ages recorded by each reader year group of scallops collected from KNE, KSH, and YAK districts.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width = \textwidth]{../figures/age_reader/age_reader_fig5.png}
+    \caption{Boxplots of shell height at the first annulus (mm) within cohorts from 1996 - 2005, by reader year group and district. Whiskers represent 1.5 * IQR.}
+\end{figure}
+
+\begin{figure}
+    \includegraphics[width = \textwidth]{../figures/age_reader/age_reader_fig6.png}
+    \caption{Scatter plots of shell height at intermediate annuli (mm) as a function of shell height at first annulus (mm) for annuli 2 - 10 in scallops caught in KNE, KSH, and YAK and aged by Kodiak based readers from 2000 - 2014. Dotted lines at 100 mm represent the size at which scallops become available to the fishery.}
+\end{figure}
+
+
+
