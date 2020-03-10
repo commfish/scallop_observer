@@ -1,57 +1,45 @@
-# Organization of observer data summary
+# Organization of observer data repository
 
-Ben Williams  
-8-2018  
-ben.williams@alaska.gov
+Tyler Jackson  
+Feb 2020
+tyler.jackson@alaska.gov
 
 Data ----
 
-The catch, bycatch, catch_comp, crab_size, logbook, and shell_height data files are downloaded annually from the Kodiak wiki  
-http://kodweb.fishgame.state.ak.us/index/Data_Access:Scallop_Observer
+The catch, bycatch, catch_comp, crab_size, logbook, and shell_height data files are downloaded as needed from the Kodiak wiki  
+http://kodweb.fishgame.state.ak.us/index/Data_Access:Scallop_Observer. Contact Tyler Jackson for .csv files.
 
-General questions about the data should be directed to the scallop observer coordinator: Ryan Burt (ryan.burt@alaska.gov)
 
- - All functions begin with a `f_`
+General questions about the data should be directed to the scallop observer program: Ryan Burt (ryan.burt@alaska.gov); Alyssa Hopkins (alyssa.hopkins@alaska.gov)
+
+ - All custom functions begin with a `f_` and are sourced within a separate script
  - snake_case with underscores is used for all naming conventions
  - a capital words are factors 
- 
- Process
- 
-  - The raw data are cleaned up, the fishing year is added, names are changed etc. This has to occur at the beginning by running the scripts in `0_data_cleaning.R`
-  - All functions are stored in the `functions.R` file
-  - Libraries and map data are stored in the `helper.R` file
-  - the functions and helper files are sourced in the analysis scripts.
   
-The complete folder setup is:
+The primary folder setup is:
 
  - code
- - data
-    - age
-    - bycatch
-      - old_bycatch
-    - catch
-    - catch_comp
-    - crab_size
-    - log
-    - meat_weight
-    - old_catch
-    - shell_height
-  - figs
-    - each year
-  - models
-    - each year
-  - notes
-  - output
-    - each year
-  - safe_figs
-    - each year
-  - tables
-    - each year
-  - tables
-    - each year
-  - text
-    - each year
-  
+   - age_estimation
+   - cpue_standardization
+   - discard_estimation
+   - maps
+   - misc
+   - safe
+ - data (see README file therein)
+ - figures
+   - age_estimation
+   - cpue_standardization
+   - discard_estimation
+   - observer_data_report
+   - safe
+ - output
+   - safe
+ - text
+   - age_estimation
+
+
+
+
 
 
 
