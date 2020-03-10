@@ -23,6 +23,27 @@ f_catch_rename <- function(x){
   x
 }
 
+# rename bycatch data to appropriate style
+# args:
+## x - daily bycatch data (as downloaded directly from wiki)
+f_bycatch_rename <- function(x){
+  names(x) <- c("Fishery", "ADFG", "Set_date", "District", "hauls", "dredge_hrs", 
+                    "est_rnd_wt", "mt_wt", "sample_hrs", "bairdi_count", "opilio_count",
+                    "dungeness_count", "halibut_count", "disc_count", "disc_wt", "broken_wt",
+                    "rem_disc_wt", "clapper_count", "king_count")
+  x
+}
+
+# rename shell_height data to appropriate style
+# args:
+## x - shell height data (as downloaded directly from wiki)
+f_shell_height_rename <- function(x){
+  names(x) <- c("Fishery", "District", "Haul_ID", "ADFG", "Rtnd_disc", "sh", "shell_num")
+  x
+}
+
+
+
 # add season to data (based on Fishery field)
 # args:
 ## x - tibble of observer or logbook data
@@ -37,6 +58,25 @@ f_add_season <- function(x, fishery_col = "Fishery"){
            Season = factor(paste0(Season, "/", substring(Season + 1, 3, 4)))) %>%
     bind_cols(x)
 }
+
+# revise district to align with current mgmt structure
+# args: x - any tibble containing the field 'district' or 'District'
+f_revise_district <- function(x){
+  if(!("district" %in% names(x))){
+    x %>%
+      mutate(District = ifelse(District == "KSH" & set_lat < 57.7 & set_lon <= -154,
+                               "KSW", District),
+             District = ifelse(District %in% c("D16", "D", "YAK"),
+                               "YAK", District))
+  } else{
+    x %>%
+      mutate(district = ifelse(district == "KSH" & set_lat < 57.7 & set_lon <= -154,
+                               "KSW", district),
+             District = ifelse(District %in% c("D16", "D", "YAK"),
+                               "YAK", District))
+  }
+}
+
 
 
 # quick summary of fishery statistics
@@ -154,7 +194,7 @@ ggplot()+
 
 ## ditrict specific coordinate projections
 KNE_proj <- coord_quickmap(xlim = c(-153.1, -150), ylim = c(56.5, 58.7))
-KSH_proj <- coord_quickmap(xlim = c(-155, -152.4), ylim = c(57, 59))
+KSH_proj <- coord_quickmap(xlim = c(-155, -152.8), ylim = c(58, 59))
 KSW_proj <- coord_quickmap(xlim = c(-156.4, -154.3), ylim = c(56, 58))
 KSE_proj <- coord_quickmap(xlim = c(-155.6, -152.3), ylim = c(55.5, 57.5))
 
