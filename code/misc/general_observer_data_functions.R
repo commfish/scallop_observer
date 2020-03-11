@@ -54,7 +54,7 @@ f_add_season <- function(x, fishery_col = "Fishery"){
     str_sub(., 3, 4) %>%
     as.numeric() %>%
     tibble(Season = .) %>%
-    mutate(Season = ifelse(Season < 90, Season + 2000, Season + 1900),
+    mutate(Season = ifelse(Season < 80, Season + 2000, Season + 1900),
            Season = factor(paste0(Season, "/", substring(Season + 1, 3, 4)))) %>%
     bind_cols(x)
 }

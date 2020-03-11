@@ -31,7 +31,7 @@ theme_set(theme_sleek())
 
 ## metadata
 ### ghl
-ghl <- read_csv("./data/metadata/ghl.csv")
+ghl <- read_csv("./data/metadata/ghl_revised_timeseries_2020.csv")
 
 ## observer/logbook data
 ### scallop haul data 2009/10 - Present
@@ -217,10 +217,39 @@ bycatch %>%
             king_tot = sum(king_count)) %>%
   write_csv("./output/observer_summary/2020/bycatch_totals_by_district_area_K.csv")
 
+## meat weight:tanner crab bycatch ratio
+bycatch %>%
+  # summarise variables by day
+  group_by(Season, District, Set_date) %>%
+  summarise(dredge_hrs = sum(dredge_hrs), 
+            sample_hrs = sum(sample_hrs),
+            mt_wt = sum(mt_wt),
+            bairdi_count = sum(bairdi_count)) %>%
+  # compute tanner catch rate (unsampled days get yearly total)
+  group_by(Season, District) %>%
+  mutate(tanner_rate = ifelse(sample_hrs == 0,
+                              sum(bairdi_count) / sum(sample_hrs),
+                              bairdi_count / sample_hrs),
+         tanner_catch = tanner_rate * dredge_hrs) %>%
+  summarise(tanner_catch = sum(tanner_catch),
+            mt_wt = sum(mt_wt)) %>%
+  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
+  ggplot(aes(x = Season, y = tanner_catch / mt_wt, 
+             group = District, color = District))+
+  geom_hline(yintercept = 0.5, linetype = 2)+
+  geom_point()+
+  geom_line()+
+  scale_colour_manual(values = cb_palette[1:4])+
+  labs(x = NULL, y = "Bycatch Ratio \n (tanner crab : lbs scallop meat)")+
+  theme(legend.position = c(0.08, 0.75)) -> x
+ggsave("./figures/observer_data_report/2020/tanner_bycatch_ratio_area_K.png", plot = x,
+       height = 3, width = 7, units = "in")          
+  
+
 ## daily bycatch of Tanner crab
 ### summarise crab and scallop daily catch 
 bycatch %>%
-  # summarise variable by day
+  # summarise variables by day
   group_by(Season, District, Set_date) %>%
   summarise(dredge_hrs = sum(dredge_hrs), 
             sample_hrs = sum(sample_hrs),
@@ -238,7 +267,7 @@ bycatch %>%
   # add cumulative proportion of GHL or CBL
   arrange(Set_date) %>%
   mutate(ghl_remain = (ghl - cumsum(mt_wt)) / ghl,
-         cbl_remain = (cbl - cumsum(tanner_catch)) / cbl) %>%
+         cbl_remain = (tanner_cbl - cumsum(tanner_catch)) / tanner_cbl) %>%
   # pivot longer for plotting
   pivot_longer(c(ghl_remain, cbl_remain), 
                names_to = "bench", values_to = "remain") -> ghl_cbl_remain
@@ -249,43 +278,47 @@ ghl_cbl_remain %>%
   geom_line(aes(x = Set_date, y = remain, group = bench, col = bench))+
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
+  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
   facet_wrap(~Season, scales = "free", ncol = 2)+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KNE.png", plot = x,
        height = 7, width = 5, units = "in")
 ### plot KSH
-ghl_cbl_prop %>%
+ghl_cbl_remain %>%
   filter(District == "KSH") %>%
   ggplot()+
-  geom_line(aes(x = Set_date, y = prop, group = bench, col = bench))+
+  geom_line(aes(x = Set_date, y = remain, group = bench, col = bench))+
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
-  labs(x = NULL, y = "Proportion of managment quantity", color = NULL)+
-  facet_wrap(~Season, scales = "free_x", ncol = 2)+
+  labs(x = NULL, y =  "Percent Remaining", color = NULL)+
+  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
+  facet_wrap(~Season, scales = "free", ncol = 2)+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSH.png", plot = x,
        height = 7, width = 5, units = "in")
 ### plot KSW
-ghl_cbl_prop %>%
+ghl_cbl_remain %>%
   filter(District == "KSW") %>%
   ggplot()+
-  geom_line(aes(x = Set_date, y = prop, group = bench, col = bench))+
+  geom_line(aes(x = Set_date, y = remain, group = bench, col = bench))+
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
-  labs(x = NULL, y = "Proportion of managment quantity", color = NULL)+
-  facet_wrap(~Season, scales = "free_x", ncol = 2)+
+  labs(x = NULL, y =  "Percent Remaining", color = NULL)+
+  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
+  facet_wrap(~Season, scales = "free", ncol = 2)+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSW.png", plot = x,
        height = 7, width = 5, units = "in")
 ### plot KSE
-ghl_cbl_prop %>%
+ghl_cbl_remain %>%
   filter(District == "KSE") %>%
   ggplot()+
-  geom_line(aes(x = Set_date, y = prop, group = bench, col = bench))+
+  geom_line(aes(x = Set_date, y = remain, group = bench, col = bench))+
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
-  labs(x = NULL, y = "Proportion of managment quantity", color = NULL)+
-  facet_wrap(~Season, scales = "free_x", ncol = 2)+
+  labs(x = NULL, y =  "Percent Remaining", color = NULL)+
+  scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
+  facet_wrap(~Season, scales = "free", ncol = 2)+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSE.png", plot = x,
-       height = 7, width = 5, units = "in")
+       height = 3, width = 3, units = "in")
 
 ## shell height composition (all districts)
 bycatch %>%
