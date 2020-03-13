@@ -193,7 +193,7 @@ ggplot()+
   theme(panel.background = element_rect(fill = "grey70")) -> f_base_map
 
 ## ditrict specific coordinate projections
-KNE_proj <- coord_quickmap(xlim = c(-153.1, -150), ylim = c(56.5, 58.7))
+KNE_proj <- coord_quickmap(xlim = c(-153.2, -150), ylim = c(56.5, 58.7))
 KSH_proj <- coord_quickmap(xlim = c(-155, -152.8), ylim = c(58, 59))
 KSW_proj <- coord_quickmap(xlim = c(-156.4, -154.3), ylim = c(56, 58))
 KSE_proj <- coord_quickmap(xlim = c(-155.6, -152.3), ylim = c(55.5, 57.5))
