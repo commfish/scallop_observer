@@ -77,6 +77,229 @@ f_add_season() %>%
 ## revise District as in catch data
 mutate(District = catch$District[match(.$Haul_ID, catch$Haul_ID)]) -> shell_height
   
+# fishery catch ----
+
+## fishery performance tables by district (f_fish_stats from general functions)
+### KNE
+f_fish_stats(catch, c("KNE"), add_ghl = T, 
+             path = "./output/observer_summary/2020/fish_stats_KNE.csv")
+### KSH
+f_fish_stats(catch, c("KSH"), add_ghl = T, 
+             path = "./output/observer_summary/2020/fish_stats_KSH.csv")
+### KSW
+f_fish_stats(catch, c("KSW"), add_ghl = T, 
+             path = "./output/observer_summary/2020/fish_stats_KSW.csv")
+### KSE
+f_fish_stats(catch, c("KSE"), add_ghl = T, 
+             path = "./output/observer_summary/2020/fish_stats_KSE.csv")
+
+## standardized cpue (f_standard_cpue from general observer functions)
+catch %>%
+  # create fields month and vessel
+  mutate(Month = lubridate::month(Set_date),
+         Month = factor(Month, levels = c(7:12, 1:6)),
+         Vessel = factor(ADFG)) %>%
+  # filter for only satisfacory dredges
+  filter(gear_perf == 1) %>% 
+  # compute cpue by dredge
+  mutate(rw_cpue = round_weight / dredge_hrs) %>%
+  mutate(Bed = factor(sample(1:2, nrow(.), T))) -> tmp
+### KNE
+f_standardize_cpue(filter(tmp, District == "KNE"), 
+                   path = "./figures/observer_data_report/2020/std_cpue_effects_KNE.png",
+                   by = "Season") %>%
+  ggplot(aes(x = Season, y = std_cpue, group = 1))+
+  geom_point()+
+  geom_line()+
+  labs(x = NULL, y = "Standardized CPUE (lbs / dredge hr)") -> x
+f_standardize_cpue(filter(tmp, District == "KNE"), 
+                   path = "./figures/observer_data_report/2020/std_cpue_effects_KNE.png",
+                   by = "Bed") %>%
+  ggplot(aes(x = Season, y = std_cpue, color = Bed, group = Bed))+
+  geom_point()+
+  geom_line()+
+  # two beds in KNE district
+  scale_color_manual(values = cb_palette[1:2])+
+  labs(x = NULL, y = "Standardized CPUE (lbs / dredge hr)")+
+  theme(legend.position = "bottom") -> y
+## combine plots
+cowplot::plot_grid(x, y + theme(legend.position = "none"), cowplot::get_legend(y),
+                   ncol = 1, rel_heights = c(1, 1, 0.1)) -> z
+ggsave("./figures/observer_data_report/2020/standardized_cpue_KNE.png", 
+       plot = z, height = 6, width = 6, units = "in")
+
+# fishery extent ----
+## map of dredge locations by district (f_base_map from general functions)
+### KNE
+f_base_map +
+  geom_point(data = filter(catch, District == "KNE"), aes(x = set_lon, y = set_lat), alpha = 0.5) +
+  KNE_proj+
+  facet_wrap(~Season, nrow = 2)
+### KSH
+f_base_map +
+  geom_point(data = filter(catch, District == "KSH"), aes(x = set_lon, y = set_lat)) +
+  KSH_proj
+### KSW
+f_base_map +
+  geom_point(data = filter(catch, District == "KSW"), aes(x = set_lon, y = set_lat)) +
+  KSW_proj
+### KSE
+f_base_map +
+  geom_point(data = filter(catch, District == "KSE"), aes(x = set_lon, y = set_lat)) +
+  KSE_proj
+
+## raster maps of fishering effort by district, year (f_make_grid from adfg_map_functions.R)
+### KNE
+# build raster grid
+catch %>%
+  filter(District == "KNE") %>%
+  rename(long = set_lon, lat = set_lat) %>%
+  group_by(Season) %>%
+  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
+  nest(data = -Season) %>%
+  mutate(grid = purrr::map(data, f_make_grid, long = KNE_proj$limits$x,
+                           lat = KNE_proj$limits$y, by = c(0.1, 0.05), 
+                           values = "prop_effort")) %>%
+  select(Season, grid) %>%
+  unnest(grid) -> tmp
+# plot map
+f_base_map+
+  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
+  labs(fill = "Proportion \n Effort")+
+  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
+                       breaks = c(0.1, 0.3, 0.5))+
+  KNE_proj+
+  scale_x_continuous(breaks = seq(-170, -130, 1))+
+  scale_y_continuous(breaks = seq(50, 65, 1))+
+  facet_wrap(~Season, ncol = 3) -> x
+ggsave("./figures/observer_data_report/2020/effort_map_KNE.png", plot = x, 
+       height = 8, width = 7, unit = "in")
+### KSH
+catch %>%
+  filter(District == "KSH") %>%
+  rename(long = set_lon, lat = set_lat) %>%
+  group_by(Season) %>%
+  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
+  nest(data = -Season) %>%
+  mutate(grid = purrr::map(data, f_make_grid, long = KSH_proj$limits$x,
+                           lat = KSH_proj$limits$y, by = c(0.1, 0.05), 
+                           values = "prop_effort")) %>%
+  select(Season, grid) %>%
+  unnest(grid) -> tmp
+f_base_map+
+  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
+  labs(fill = "Proportion \n Effort")+
+  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
+                       breaks = c(0.01, 0.1, 0.2, 0.3))+
+  KSH_proj+
+  scale_x_continuous(breaks = seq(-170, -130, 1))+
+  scale_y_continuous(breaks = seq(50, 65, 1))+
+  facet_wrap(~Season, ncol = 3) -> x
+ggsave("./figures/observer_data_report/2020/effort_map_KSH.png", plot = x, 
+       height = 8, width = 7, unit = "in")
+### KSW
+catch %>%
+  filter(District == "KSW") %>%
+  rename(long = set_lon, lat = set_lat) %>%
+  group_by(Season) %>%
+  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
+  nest(data = -Season) %>%
+  mutate(grid = purrr::map(data, f_make_grid, long = KSW_proj$limits$x,
+                           lat = KSW_proj$limits$y, by = c(0.1, 0.05), 
+                           values = "prop_effort")) %>%
+  select(Season, grid) %>%
+  unnest(grid) -> tmp
+f_base_map+
+  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
+  labs(fill = "Proportion \n Effort")+
+  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
+                       breaks = c(0.01, 0.25, 0.5))+
+  KSW_proj+
+  scale_x_continuous(breaks = seq(-170, -130, 1))+
+  scale_y_continuous(breaks = seq(50, 65, 1))+
+  facet_wrap(~Season, ncol = 4, drop = F) -> x
+ggsave("./figures/observer_data_report/2020/effort_map_KSW.png", plot = x, 
+       height = 8, width = 7, unit = "in")
+### KSE
+catch %>%
+  filter(District == "KSE") %>%
+  rename(long = set_lon, lat = set_lat) %>%
+  group_by(Season) %>%
+  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
+  nest(data = -Season) %>%
+  mutate(grid = purrr::map(data, f_make_grid, long = KSE_proj$limits$x,
+                           lat = KSE_proj$limits$y, by = c(0.1, 0.05), 
+                           values = "prop_effort")) %>%
+  select(Season, grid) %>%
+  unnest(grid) -> tmp
+f_base_map+
+  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
+  labs(fill = "Proportion \n Effort")+
+  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
+                       breaks = c(0.01, 0.05, 0.1, 0.15))+
+  KSE_proj+
+  facet_wrap(~Season, nrow = 2, drop = T) -> x
+ggsave("./figures/observer_data_report/2020/effort_map_KSE.png", plot = x, 
+       height = 3.5, width = 4, unit = "in")
+
+
+## extent of round weight catch (f_extent_catch from general_observer_data_functions.R)
+### KNE
+catch %>%
+  filter(District == "KNE") %>%
+  nest(data = -Season) %>%
+  mutate(extent = purrr::map_dbl(data, f_extent_catch)) %>%
+  unnest(data) %>%
+  group_by(Season) %>%
+  summarise(CPUE = sum(round_weight) / sum(dredge_hrs),
+            Extent = mean(extent) * 1000) %>%
+  pivot_longer(c("CPUE", "Extent"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(x = Season, y = value, linetype = metric, group = metric))+
+  geom_point()+
+  geom_line()+
+  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Extent"))+
+  labs(x = NULL, y = "CPUE (round lbs / dredge hr)", linetype = NULL)+
+  theme(legend.position = "bottom") -> x
+ggsave("./figures/observer_data_report/2020/cpue_extent_KNE.png", plot = x, 
+       height = 3, width = 7, unit = "in")  
+### KSH
+catch %>%
+  filter(District == "KSH") %>%
+  nest(data = -Season) %>%
+  mutate(extent = purrr::map_dbl(data, f_extent_catch)) %>%
+  unnest(data) %>%
+  group_by(Season) %>%
+  summarise(CPUE = sum(round_weight) / sum(dredge_hrs),
+            Extent = mean(extent) * 1000) %>%
+  pivot_longer(c("CPUE", "Extent"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(x = Season, y = value, linetype = metric, group = metric))+
+  geom_point()+
+  geom_line()+
+  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Extent"))+
+  labs(x = NULL, y = "CPUE (round lbs / dredge hr)", linetype = NULL)+
+  theme(legend.position = "bottom") -> x
+ggsave("./figures/observer_data_report/2020/cpue_extent_KSH.png", plot = x, 
+       height = 3, width = 7, unit = "in")
+### KSW
+catch %>%
+  filter(District == "KSW") %>%
+  nest(data = -Season) %>%
+  mutate(extent = purrr::map_dbl(data, f_extent_catch)) %>%
+  unnest(data) %>%
+  group_by(Season) %>%
+  summarise(CPUE = sum(round_weight) / sum(dredge_hrs),
+            Extent = mean(extent) * 1000) %>%
+  pivot_longer(c("CPUE", "Extent"), names_to = "metric", values_to = "value") %>%
+  ggplot(aes(x = Season, y = value, linetype = metric, group = metric))+
+  geom_point()+
+  geom_line()+
+  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Extent"))+
+  labs(x = NULL, y = "CPUE (round lbs / dredge hr)", linetype = NULL)+
+  theme(legend.position = "bottom") -> x
+ggsave("./figures/observer_data_report/2020/cpue_extent_KSW.png", plot = x, 
+       height = 3, width = 7, unit = "in")
+
+
 # bycatch ----
 
 ## total crab bycatch and bycatch:meatweight ratio by Season, District
@@ -305,6 +528,95 @@ ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSE.png", plot = x,
 
 
 
+# discards ----
+## discard in lbs and number of animals
+### compute discard lbs and number
+bycatch %>%
+  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
+  group_by(Season, District) %>%
+  summarise(effort = sum(dredge_hrs),
+            discard_rate_lb = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
+            discard_lb = discard_rate_lb * effort,
+            disc_per_lb = sum(disc_count) / sum(disc_wt, broken_wt),
+            discard_rate_num = (sum(disc_count) + disc_per_lb * sum(rem_disc_wt)) / sum(sample_hrs),
+            discard_num = discard_rate_num * effort) -> tmp
+### save plot of lbs
+tmp %>%
+  ggplot(aes(x = Season, y = discard_lb, color = District, group = District))+
+  geom_point()+
+  geom_line()+
+  scale_y_continuous(labels = comma)+
+  scale_colour_manual(values = cb_palette[1:4])+
+  labs(x = NULL, y = "Scallop Discards (lbs)")+
+  theme(legend.position = "none") -> x
+### save plot of number
+tmp %>%
+  ggplot(aes(x = Season, y = discard_num, color = District, group = District))+
+  geom_point()+
+  geom_line()+
+  scale_colour_manual(values = cb_palette[1:4])+
+  labs(x = NULL, y = "Scallop Discards (count)", color = NULL)+
+  theme(legend.position = "bottom") -> y
+## combine plots
+cowplot::plot_grid(x, y + theme(legend.position = "none"), cowplot::get_legend(y),
+                   ncol = 1, rel_heights = c(1, 1, 0.1)) -> z
+ggsave("./figures/observer_data_report/2020/scallop_discards_area_K.png", 
+       plot = z, height = 6, width = 6, units = "in")
+### export tables by district
+#### summarise round weight by season and district
+catch %>%
+  group_by(Season, District) %>%
+  summarise(round_weight = sum(round_weight, na.rm = T)) %>%
+  # join with 'tmp' (discard estimates)
+  right_join(tmp, by = c("District", "Season")) %>%
+  # compute discard lbs ratio and overwrite object 'tmp'
+  mutate(discard_ratio = discard_lb / round_weight) -> tmp
+#### KNE
+tmp %>%
+  filter(District == "KNE") %>%
+  select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+         discard_rate_lb, discard_rate_num) %>%
+  write_csv("./output/observer_summary/2020/discard_summary_KNE.csv")
+#### KSH
+tmp %>%
+  filter(District == "KSH") %>%
+  select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+         discard_rate_lb, discard_rate_num) %>%
+  write_csv("./output/observer_summary/2020/discard_summary_KSH.csv")
+#### KSW
+tmp %>%
+  filter(District == "KSW") %>%
+  select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+         discard_rate_lb, discard_rate_num) %>%
+  write_csv("./output/observer_summary/2020/discard_summary_KSW.csv")
+#### KSE
+tmp %>%
+  filter(District == "KSE") %>%
+  select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+         discard_rate_lb, discard_rate_num) %>%
+  write_csv("./output/observer_summary/2020/discard_summary_KSE.csv")
+
+## discard ratio, round weight and num animals
+bycatch %>%
+  filter(sample_hrs != 0,
+         District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
+  group_by(Season, District) %>%
+  summarise(effort = sum(dredge_hrs),
+            sample_hrs = sum(sample_hrs),
+            round_weight = sum(est_rnd_wt),
+            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
+            tot_disc = disc_lbs / sample_hrs * effort,
+            ratio = tot_disc / round_weight) %>%
+  ggplot(aes(x = Season, y = ratio, 
+             group = District, color = District))+
+  geom_point()+
+  geom_line()+
+  scale_colour_manual(values = cb_palette[1:4])+
+  labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
+  theme(legend.position = "bottom") -> x
+ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_K.png", plot = x,
+       height = 3, width = 6, units = "in") 
+
 # area K ----
 
 ## plot meat weight ~ 10% round weight
@@ -329,95 +641,6 @@ ggsave("./figures/observer_data_report/2020/annual_catch_area_K.png",
        plot = x, height = 5, width = 6, units = "in")
 
   
-
-## fishery performance tables by district (f_fish_stats from general functions)
-### KNE
-f_fish_stats(catch, c("KNE"), add_ghl = T, 
-             path = "./output/observer_summary/2020/fish_stats_KNE.csv")
-### KSH
-f_fish_stats(catch, c("KSH"), add_ghl = T, 
-             path = "./output/observer_summary/2020/fish_stats_KSH.csv")
-### KSW
-f_fish_stats(catch, c("KSW"), add_ghl = T, 
-             path = "./output/observer_summary/2020/fish_stats_KSW.csv")
-### KSE
-f_fish_stats(catch, c("KSE"), add_ghl = T, 
-             path = "./output/observer_summary/2020/fish_stats_KSE.csv")
-
-## map of dredge locations by district (f_base_map from general functions)
-### KNE
-f_base_map +
-  geom_point(data = filter(catch, District == "KNE"), aes(x = set_lon, y = set_lat), alpha = 0.5) +
-  KNE_proj+
-  facet_wrap(~Season, nrow = 2)
-### KSH
-f_base_map +
-  geom_point(data = filter(catch, District == "KSH"), aes(x = set_lon, y = set_lat)) +
-  KSH_proj
-### KSW
-f_base_map +
-  geom_point(data = filter(catch, District == "KSW"), aes(x = set_lon, y = set_lat)) +
-  KSW_proj
-### KSE
-f_base_map +
-  geom_point(data = filter(catch, District == "KSE"), aes(x = set_lon, y = set_lat)) +
-  KSE_proj
-
-## discard in lbs and number of animals
-### discard lbs
-bycatch %>%
-  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            discard_rate = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
-            discard_wt = discard_rate * effort) %>%
-  ggplot(aes(x = Season, y = discard_wt, color = District, group = District))+
-  geom_point()+
-  geom_line()+
-  scale_y_continuous(labels = comma)+
-  scale_colour_manual(values = cb_palette[1:4])+
-  labs(x = NULL, y = "Scallop Discards (lbs)")+
-  theme(legend.position = "none") -> x
-### discard number of animals
-bycatch %>%
-  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            disc_per_lb = sum(disc_count) / sum(disc_wt, broken_wt),
-            disc_rate_num = (sum(disc_count) + disc_per_lb * sum(rem_disc_wt)) / sum(sample_hrs),
-            total_disc_num = disc_rate_num * effort) %>%
-  ggplot(aes(x = Season, y = total_disc_num, color = District, group = District))+
-  geom_point()+
-  geom_line()+
-  scale_colour_manual(values = cb_palette[1:4])+
-  labs(x = NULL, y = "Scallop Discards (count)", color = NULL)+
-  theme(legend.position = "bottom") -> y
-## combine plots
-cowplot::plot_grid(x, y + theme(legend.position = "none"), cowplot::get_legend(y),
-                   ncol = 1, rel_heights = c(1, 1, 0.1)) -> z
-ggsave("./figures/observer_data_report/2020/scallop_discards_area_K.png", 
-       plot = z, height = 6, width = 7, units = "in")
-
-## discard ratio, round weight and num animals
-bycatch %>%
-  filter(sample_hrs != 0,
-         District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            sample_hrs = sum(sample_hrs),
-            round_weight = sum(est_rnd_wt),
-            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
-            tot_disc = disc_lbs / sample_hrs * effort,
-            ratio = tot_disc / round_weight) %>%
-  ggplot(aes(x = Season, y = ratio, 
-             group = District, color = District))+
-  geom_point()+
-  geom_line()+
-  scale_colour_manual(values = cb_palette[1:4])+
-  labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
-  theme(legend.position = c(0.08, 0.75)) -> x
-ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_K.png", plot = x,
-       height = 3, width = 7, units = "in") 
 
 
 
@@ -459,21 +682,6 @@ bycatch %>%
 ggsave("./figures/observer_data_report/2020/sh_comp_area_K.png", plot = x,
        height = 6, width = 8, units = "in")
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## interannual trend in nominal meat weight cpue, all districts
 catch %>%
   filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
@@ -486,163 +694,6 @@ catch %>%
   scale_color_manual(values = cb_palette)+
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
 
-## raster maps of fishering effort by district, year (f_make_grid from adfg_map_functions.R)
-### KNE
-# build raster grid
-catch %>%
-  filter(District == "KNE") %>%
-  rename(long = set_lon, lat = set_lat) %>%
-  group_by(Season) %>%
-  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
-  nest(data = -Season) %>%
-  mutate(grid = purrr::map(data, f_make_grid, long = KNE_proj$limits$x,
-                           lat = KNE_proj$limits$y, by = c(0.1, 0.05), 
-                           values = "prop_effort")) %>%
-  select(Season, grid) %>%
-  unnest(grid) -> tmp
-# plot map
-f_base_map+
-  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
-  labs(fill = "Proportion \n Effort")+
-  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
-                       breaks = c(0.1, 0.3, 0.5))+
-  KNE_proj+
-  scale_x_continuous(breaks = seq(-170, -130, 1))+
-  scale_y_continuous(breaks = seq(50, 65, 1))+
-  facet_wrap(~Season, ncol = 3) -> x
-ggsave("./figures/observer_data_report/2020/effort_map_KNE.png", plot = x, 
-       height = 8, width = 7, unit = "in")
-### KSH
-catch %>%
-  filter(District == "KSH") %>%
-  rename(long = set_lon, lat = set_lat) %>%
-  group_by(Season) %>%
-  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
-  nest(data = -Season) %>%
-  mutate(grid = purrr::map(data, f_make_grid, long = KSH_proj$limits$x,
-                           lat = KSH_proj$limits$y, by = c(0.1, 0.05), 
-                           values = "prop_effort")) %>%
-  select(Season, grid) %>%
-  unnest(grid) -> tmp
-f_base_map+
-  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
-  labs(fill = "Proportion \n Effort")+
-  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
-                       breaks = c(0.01, 0.1, 0.2, 0.3))+
-  KSH_proj+
-  scale_x_continuous(breaks = seq(-170, -130, 1))+
-  scale_y_continuous(breaks = seq(50, 65, 1))+
-  facet_wrap(~Season, ncol = 3) -> x
-ggsave("./figures/observer_data_report/2020/effort_map_KSH.png", plot = x, 
-       height = 8, width = 8, unit = "in")
-### KSW
-catch %>%
-  filter(District == "KSW") %>%
-  rename(long = set_lon, lat = set_lat) %>%
-  group_by(Season) %>%
-  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
-  nest(data = -Season) %>%
-  mutate(grid = purrr::map(data, f_make_grid, long = KSW_proj$limits$x,
-                           lat = KSW_proj$limits$y, by = c(0.1, 0.05), 
-                           values = "prop_effort")) %>%
-  select(Season, grid) %>%
-  unnest(grid) -> tmp
-f_base_map+
-  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
-  labs(fill = "Proportion \n Effort")+
-  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
-                       breaks = c(0.01, 0.25, 0.5))+
-  KSW_proj+
-  scale_x_continuous(breaks = seq(-170, -130, 1))+
-  scale_y_continuous(breaks = seq(50, 65, 1))+
-  facet_wrap(~Season, ncol = 3, drop = F) -> x
-ggsave("./figures/observer_data_report/2020/effort_map_KSW.png", plot = x, 
-       height = 8, width = 7, unit = "in")
-### KSE
-catch %>%
-  filter(District == "KSE") %>%
-  rename(long = set_lon, lat = set_lat) %>%
-  group_by(Season) %>%
-  mutate(prop_effort = dredge_hrs/sum(dredge_hrs)) %>%
-  nest(data = -Season) %>%
-  mutate(grid = purrr::map(data, f_make_grid, long = KSE_proj$limits$x,
-                           lat = KSE_proj$limits$y, by = c(0.1, 0.05), 
-                           values = "prop_effort")) %>%
-  select(Season, grid) %>%
-  unnest(grid) -> tmp
-f_base_map+
-  geom_polygon(data = drop_na(tmp), aes(x = long, y = lat, group = group, fill = prop_effort))+
-  labs(fill = "Proportion \n Effort")+
-  scale_fill_gradientn(colors = topo.colors(5), values = c(0, 0.1, 0.2, 1),
-                       breaks = c(0.01, 0.05, 0.1, 0.15))+
-  KSE_proj+
-  facet_wrap(~Season, nrow = 2, drop = T) -> x
-ggsave("./figures/observer_data_report/2020/effort_map_KSE.png", plot = x, 
-       height = 6, width = 4, unit = "in")
 
-
-## extent of round weight catch (f_extent_catch from general_observer_data_functions.R)
-### KNE
-catch %>%
-  filter(District == "KNE") %>%
-  nest(data = -Season) %>%
-  mutate(extent = purrr::map_dbl(data, f_extent_catch)) %>%
-  unnest(data) %>%
-  group_by(Season) %>%
-  summarise(CPUE = sum(round_weight) / sum(dredge_hrs),
-            Extent = mean(extent) * 1000) %>%
-  pivot_longer(c("CPUE", "Extent"), names_to = "metric", values_to = "value") %>%
-  ggplot(aes(x = Season, y = value, linetype = metric, group = metric))+
-  geom_point()+
-  geom_line()+
-  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Extent"))+
-  labs(x = NULL, y = "CPUE (round lbs / dredge hr)", linetype = NULL)+
-  theme(legend.position = "bottom") -> x
-ggsave("./figures/observer_data_report/2020/cpue_extent_KNE.png", plot = x, 
-       height = 3, width = 7, unit = "in")  
-### KSH
-catch %>%
-  filter(District == "KSH") %>%
-  nest(data = -Season) %>%
-  mutate(extent = purrr::map_dbl(data, f_extent_catch)) %>%
-  unnest(data) %>%
-  group_by(Season) %>%
-  summarise(CPUE = sum(round_weight) / sum(dredge_hrs),
-            Extent = mean(extent) * 1000) %>%
-  pivot_longer(c("CPUE", "Extent"), names_to = "metric", values_to = "value") %>%
-  ggplot(aes(x = Season, y = value, linetype = metric, group = metric))+
-  geom_point()+
-  geom_line()+
-  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Extent"))+
-  labs(x = NULL, y = "CPUE (round lbs / dredge hr)", linetype = NULL)+
-  theme(legend.position = "bottom") -> x
-ggsave("./figures/observer_data_report/2020/cpue_extent_KSH.png", plot = x, 
-       height = 3, width = 7, unit = "in")
-### KSW
-catch %>%
-  filter(District == "KSW") %>%
-  nest(data = -Season) %>%
-  mutate(extent = purrr::map_dbl(data, f_extent_catch)) %>%
-  unnest(data) %>%
-  group_by(Season) %>%
-  summarise(CPUE = sum(round_weight) / sum(dredge_hrs),
-            Extent = mean(extent) * 1000) %>%
-  pivot_longer(c("CPUE", "Extent"), names_to = "metric", values_to = "value") %>%
-  ggplot(aes(x = Season, y = value, linetype = metric, group = metric))+
-  geom_point()+
-  geom_line()+
-  scale_y_continuous(sec.axis = sec_axis(~./1000, name = "Extent"))+
-  labs(x = NULL, y = "CPUE (round lbs / dredge hr)", linetype = NULL)+
-  theme(legend.position = "bottom") -> x
-ggsave("./figures/observer_data_report/2020/cpue_extent_KSW.png", plot = x, 
-       height = 3, width = 7, unit = "in")
-
-
-
-# area D ----
-
-## fishery performance table
-fish_stats(catch, c("D", "D16", "YAK"), add_ghl = T, 
-           path = "./output/observer_summary/2020/fish_stats_D.csv")
 
 

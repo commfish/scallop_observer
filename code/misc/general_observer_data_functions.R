@@ -6,6 +6,8 @@
 
 # load libraries ----
 library(tidyverse)
+library(mgcv)
+library(mgcViz)
 
 # functions ----
 
@@ -41,7 +43,6 @@ f_shell_height_rename <- function(x){
   names(x) <- c("Fishery", "District", "Haul_ID", "ADFG", "Rtnd_disc", "sh", "shell_num")
   x
 }
-
 
 
 # add season to data (based on Fishery field)
@@ -162,10 +163,11 @@ f_density_2D <- function(data, x, y, h = c(0.1, 0.1), facet){
   }
 }
 
+
 ## graphical extent of roundweight catch (mean distance between dredges in graphical units)
 ### args:
 ### x - logbook catch data
-### quant - cut off quantile for contribution to catch. Default = 0.95.
+### quant - cut off quantile for contribution to catch. Default = 0.9.
 f_extent_catch <- function(x, quant = 0.9){
   x %>%
     arrange(-round_weight) %>%
@@ -175,6 +177,101 @@ f_extent_catch <- function(x, quant = 0.9){
     dist() %>%
     mean()
 }
+
+
+## compute standardized cpue based on nominal round weight catch data
+### args:
+### x - catch data to standardize containing fields for covariates. Must include 
+### 'Season', 'Bed', 'Vessel', 'Month', 'depth', 'set_lon'.
+### path - file path to save plots
+### by - level to summarise standardized coue over. "Season" or "Bed"
+### Outputs a point estimate for each season and effects plots of Season, Bed, 
+### Vessel, and Month
+f_standardize_cpue <- function(x, path, by){
+  # cut off prefix of season for plotting
+  x$Season <- factor(substring(x$Season, 3, 4))
+  # create cpue modifer
+  adj <- mean(x$rw_cpue, na.rm = T)
+  # fit model
+  mod <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(set_lon, by = Bed) + 
+              Month + Vessel + Season * Bed, data = x, gamma = 1.4, 
+              family = Gamma(link = log), select = T)
+  # print diagnostics
+  mod_viz <- getViz(mod)
+  print(check(mod_viz,
+        a.qq = list(method = "tnorm",
+                    a.cipoly = list(fill = "light blue")),
+        a.respoi = list(size = 0.5),
+        a.hist = list(bins = 10)))
+  # save vessel, month, Season, and Bed effect
+  n_start <- length(unique(x$Bed)) + length(unique(x$Bed)) + 1
+  n_end <- n_start + 3
+  ggsave(path, 
+         plot = print(plot(mod_viz, allTerms = F, select = (n_start:n_end))+ 
+                      l_points(size = 1, col = "grey")+
+                      l_ciBar(linetype = 1)+
+                      l_fitPoints(size = 1, col = 1)+
+                      geom_hline(yintercept = 0, linetype = 2)+
+                      theme_sleek(), pages = 1), 
+        height = 4, width = 6, units = "in")
+  # compute standardized cpue
+  expand_grid(Season = unique(x$Season), 
+              Month = unique(x$Month),
+              Bed = unique(x$Bed),
+              Vessel = unique(x$Vessel)) %>%
+    # set depth as mode of depth, and set_lon as mean of set_lon
+    left_join(x %>%
+                group_by(Bed) %>%
+                summarise(depth = mode(depth),
+                          set_lon = mean(set_lon, na.rm = T)),
+              by = c("Bed")) -> tmp
+  # add weights for averaging cpue
+  if(by == "Season"){
+    tmp %>%
+      left_join(x %>%
+                  group_by(Season, Bed, Month, Vessel) %>%
+                  summarise(n = n()) %>%
+                  group_by(Season) %>%
+                  mutate(w = n / sum(n, na.rm = T)),
+                by = c("Season", "Bed", "Month", "Vessel")) %>% 
+      replace_na(list(n = 0, w = 0)) %>%
+      # add fitted values from models
+      mutate(fit = predict(mod, newdata = ., type = "response") - adj) %>%
+      # take the median weighted by proportion of effort allocated to each factor level within year to acheive standardized cpue   
+      group_by(Season) %>%
+      summarise(std_cpue = spatstat::weighted.median(fit, w = w)) %>%
+      # correct season
+      mutate(Season = ifelse(as.numeric(as.character(Season)) < 80, 
+                             as.numeric(as.character(Season)) + 2000,
+                             as.numeric(as.character(Season)) + 1900),
+             Season = paste0(Season, "/", substring(Season + 1, 3, 4))) %>%
+      as_tibble(.)
+  } else{if(by == "Bed"){
+    tmp %>%
+      left_join(x %>%
+                  group_by(Season, Bed, Month, Vessel) %>%
+                  summarise(n = n()) %>%
+                  group_by(Season, Bed) %>%
+                  mutate(w = n / sum(n, na.rm = T)),
+                by = c("Season", "Bed", "Month", "Vessel")) %>% 
+      replace_na(list(n = 0, w = 0)) %>% 
+      # add fitted values from models
+      mutate(fit = predict(mod, newdata = ., type = "response") - adj) %>%
+      # take the median weighted by proportion of effort allocated to each factor level within year to acheive standardized cpue   
+      group_by(Season, Bed) %>%
+      summarise(std_cpue = spatstat::weighted.median(fit, w = w)) %>%
+      ungroup() %>%
+      # correct season
+      mutate(Season = ifelse(as.numeric(as.character(Season)) < 80, 
+                             as.numeric(as.character(Season)) + 2000,
+                             as.numeric(as.character(Season)) + 1900),
+             Season = paste0(Season, "/", substring(Season + 1, 3, 4))) %>%
+      as_tibble(.)
+    }
+  }
+}
+
+    
 
 
 # objects ----
