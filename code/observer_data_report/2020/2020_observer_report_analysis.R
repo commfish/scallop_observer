@@ -26,7 +26,7 @@ cb_palette <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
                 "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ### set theme (from FNGr)
-theme_set(theme_sleek())
+theme_set(theme_sleek() + theme(legend.position = "bottom"))
 ### cutsom axis ticks for yrs (from FNGr)
 
 # data ----
@@ -39,13 +39,17 @@ ghl <- read_csv("./data/metadata/ghl_revised_timeseries_2020.csv")
 ### scallop haul data 2009/10 - Present
 catch <- do.call(bind_rows,
                  lapply(paste0("data/catch/", list.files("data/catch/")), read_csv))
-### bycatch by day 2009/10 - Present
-bycatch <- do.call(bind_rows,
-                 lapply(paste0("data/bycatch/", list.files("data/bycatch/")), read_csv))
 ### shell heights 2009/10 - Present
 shell_height <- do.call(bind_rows,
                    lapply(paste0("data/shell_height/", 
                                  list.files("data/shell_height/")), read_csv))
+### bycatch by day 2009/10 - Present
+bycatch <- do.call(bind_rows,
+                   lapply(paste0("data/bycatch/", list.files("data/bycatch/")), read_csv))
+### crab bycath size data 2009/10 - Present
+crab_size <- do.call(bind_rows,
+                     lapply(paste0("data/crab_size/", list.files("data/crab_size/")), read_csv))
+
 
 
 # data mgmt ----
@@ -64,11 +68,27 @@ f_revise_district() %>%
 mutate(Set_date = lubridate::mdy(Set_date))-> catch
 
 ## rename fields in bycatch data (2009 - present)
-f_bycatch_rename(bycatch)%>%
+f_bycatch_rename(bycatch) %>%
 ## add Season to data
 f_add_season() %>%
 ## coerce date to date class
 mutate(Set_date = lubridate::mdy(Set_date)) -> bycatch
+
+## reason fields in crab size data (2009 - present)
+f_crab_size_rename(crab_size) %>%
+## add Season to data
+f_add_season() %>%
+## revise district (replace with f_revise district after beds are added to data)
+mutate(District = ifelse(District %in% c("D", "YAK", "D16"), "YAK", District)) %>%
+## add Species and Sex
+mutate(Species = case_when(RACE_code == 68560 ~ "Tanner crab",
+                           RACE_code == 68541 ~ "snow crab"),
+       Species = factor(Species, levels = c("Tanner crab", "snow crab")),
+       Sex = case_when(sex == 1 ~ "Male",
+                       sex == 2 ~ "Female",
+                       sex == 3 ~ "Unknown"),
+       Sex = factor(Sex, levels = c("Male", "Female", "Unknown"))) -> crab_size
+  
 
 ## rename fields in shell_height data (2009 - present) 
 f_shell_height_rename(shell_height) %>%
@@ -93,40 +113,118 @@ f_fish_stats(catch, c("KSW"), add_ghl = T,
 f_fish_stats(catch, c("KSE"), add_ghl = T, 
              path = "./output/observer_summary/2020/fish_stats_KSE.csv")
 
-## standardized cpue (f_standard_cpue from general observer functions)
+## standardized cpue plots (f_standard_cpue from general observer functions)
 catch %>%
   # create fields month and vessel
   mutate(Month = lubridate::month(Set_date),
          Month = factor(Month, levels = c(7:12, 1:6)),
          Vessel = factor(ADFG)) %>%
-  # filter for only satisfacory dredges
-  filter(gear_perf == 1) %>% 
-  # compute cpue by dredge
-  mutate(rw_cpue = round_weight / dredge_hrs) %>%
   mutate(Bed = factor(sample(1:2, nrow(.), T))) -> tmp
+
 ### KNE
+#### plot by season
 f_standardize_cpue(filter(tmp, District == "KNE"), 
                    path = "./figures/observer_data_report/2020/std_cpue_effects_KNE.png",
-                   by = "Season") %>%
-  ggplot(aes(x = Season, y = std_cpue, group = 1))+
-  geom_point()+
-  geom_line()+
-  labs(x = NULL, y = "Standardized CPUE (lbs / dredge hr)") -> x
+                   by = "Season") %T>%
+  write_csv("./output/observer_summary/2020/standardized_cpue_season_KNE.csv") -> x # x is a temporary object to be overwritten
+ggplot()+
+  geom_boxplot(data = filter(tmp, District == "KNE"), 
+               aes(x = Season, y = round_weight / dredge_hrs), 
+               color = "grey80", fill = NA, outlier.shape = NA)+
+  geom_point(data = x, aes(x = Season, y = std_cpue))+
+  geom_line(data = x, aes(x = Season, y = std_cpue, group = 1))+
+  labs(x = NULL, y = "CPUE (lbs / dredge hr)")+
+  # customize y limits to exclude outliers
+  coord_cartesian(ylim = c(0, 2000)) -> x
+#### get number of beds in District
+n_levels <- length(levels(filter(tmp, District == "KNE")$Bed))
+#### plot by bed, season
 f_standardize_cpue(filter(tmp, District == "KNE"), 
                    path = "./figures/observer_data_report/2020/std_cpue_effects_KNE.png",
-                   by = "Bed") %>%
+                   by = "Bed") %T>%
+  write_csv("./output/observer_summary/2020/standardized_cpue_bedseason_KNE.csv") %>%
   ggplot(aes(x = Season, y = std_cpue, color = Bed, group = Bed))+
   geom_point()+
   geom_line()+
-  # two beds in KNE district
-  scale_color_manual(values = cb_palette[1:2])+
-  labs(x = NULL, y = "Standardized CPUE (lbs / dredge hr)")+
+  scale_color_manual(values = cb_palette[1:n_levels])+
+  labs(x = NULL, y = "Standardized \n CPUE (lbs / dredge hr)")+
   theme(legend.position = "bottom") -> y
-## combine plots
+#### combine plots
 cowplot::plot_grid(x, y + theme(legend.position = "none"), cowplot::get_legend(y),
                    ncol = 1, rel_heights = c(1, 1, 0.1)) -> z
 ggsave("./figures/observer_data_report/2020/standardized_cpue_KNE.png", 
-       plot = z, height = 6, width = 6, units = "in")
+       plot = z, height = 5, width = 6, units = "in")
+
+### KSH
+#### plot by season
+f_standardize_cpue(filter(tmp, District == "KSH"), 
+                   path = "./figures/observer_data_report/2020/std_cpue_effects_KSH.png",
+                   by = "Season") %T>%
+  write_csv("./output/observer_summary/2020/standardized_cpue_season_KSH.csv") -> x # x is a temporary object to be overwritten
+ggplot()+
+  geom_boxplot(data = filter(tmp, District == "KSH"), 
+               aes(x = Season, y = round_weight / dredge_hrs), 
+               color = "grey80", fill = NA, outlier.shape = NA)+
+  geom_point(data = x, aes(x = Season, y = std_cpue))+
+  geom_line(data = x, aes(x = Season, y = std_cpue, group = 1))+
+  labs(x = NULL, y = "CPUE (lbs / dredge hr)")+
+  # customize y limits to exclude outliers
+  coord_cartesian(ylim = c(0, 1500)) -> x
+#### get number of beds in District
+n_levels <- length(levels(filter(tmp, District == "KSH")$Bed))
+#### plot by bed, season
+f_standardize_cpue(filter(tmp, District == "KSH"), 
+                   path = "./figures/observer_data_report/2020/std_cpue_effects_KSH.png",
+                   by = "Bed") %T>%
+  write_csv("./output/observer_summary/2020/standardized_cpue_bedseason_KSH.csv") %>%
+  ggplot(aes(x = Season, y = std_cpue, color = Bed, group = Bed))+
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values = cb_palette[1:n_levels])+
+  labs(x = NULL, y = "Standardized \n CPUE (lbs / dredge hr)")+
+  theme(legend.position = "bottom") -> y
+#### combine plots
+cowplot::plot_grid(x, y + theme(legend.position = "none"), cowplot::get_legend(y),
+                   ncol = 1, rel_heights = c(1, 1, 0.1)) -> z
+ggsave("./figures/observer_data_report/2020/standardized_cpue_KSH.png", 
+       plot = z, height = 5, width = 6, units = "in")
+
+### KSW
+#### plot by season
+f_standardize_cpue(filter(tmp, District == "KSW"), 
+                   path = "./figures/observer_data_report/2020/std_cpue_effects_KSW.png",
+                   by = "Season") %T>%
+  write_csv("./output/observer_summary/2020/standardized_cpue_season_KSW.csv") -> x # x is a temporary object to be overwritten
+ggplot()+
+  geom_boxplot(data = filter(tmp, District == "KSW"), 
+               aes(x = Season, y = round_weight / dredge_hrs), 
+               color = "grey80", fill = NA, outlier.shape = NA)+
+  geom_point(data = x, aes(x = Season, y = std_cpue))+
+  geom_line(data = x, aes(x = Season, y = std_cpue, group = 1))+
+  labs(x = NULL, y = "CPUE (lbs / dredge hr)")+
+  # customize y limits to exclude outliers
+  coord_cartesian(ylim = c(0, 2000)) -> x
+#### get number of beds in District
+n_levels <- length(levels(filter(tmp, District == "KSW")$Bed))
+#### plot by bed, season
+f_standardize_cpue(filter(tmp, District == "KSW"), 
+                   path = "./figures/observer_data_report/2020/std_cpue_effects_KSW.png",
+                   by = "Bed") %T>%
+  write_csv("./output/observer_summary/2020/standardized_cpue_bedseason_KSW.csv") %>%
+  ggplot(aes(x = Season, y = std_cpue, color = Bed, group = Bed))+
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values = cb_palette[1:n_levels])+
+  labs(x = NULL, y = "Standardized \n CPUE (lbs / dredge hr)")+
+  theme(legend.position = "bottom") -> y
+#### combine plots
+cowplot::plot_grid(x, y + theme(legend.position = "none"), cowplot::get_legend(y),
+                   ncol = 1, rel_heights = c(1, 1, 0.1)) -> z
+ggsave("./figures/observer_data_report/2020/standardized_cpue_KSW.png", 
+       plot = z, height = 5, width = 6, units = "in")
+
+
+
 
 # fishery extent ----
 ## map of dredge locations by district (f_base_map from general functions)
@@ -522,10 +620,52 @@ ghl_cbl_remain %>%
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSE.png", plot = x,
        height = 3, width = 3, units = "in")
 
-
-
-
-
+## Tanner crab bycatch size composition by district
+crab_size %>%
+  mutate(cw_bin = cut(cw, breaks = seq(0, 250, 5), labels = F),
+         cw_bin = seq(5, 250, 5)[cw_bin]) %>%
+  group_by(Season, District,  Species, Sex, cw_bin) %>%
+  summarise(num_crab = round(sum(samp_frac))) -> tmp
+### KNE district 
+filter(tmp, District == "KNE") %>%
+  ggplot()+
+  geom_bar(aes(x = cw_bin, y = num_crab, fill = Sex), stat = "identity", color = "black")+
+  labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
+  scale_fill_manual(values = cb_palette[4:6])+
+  scale_x_continuous(breaks = seq(0, 250, 30))+
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = F) -> x
+ggsave("./figures/observer_data_report/2020/tanner_size_KNE.png", plot = x,
+      height = 8, width = 6, units = "in")
+### KSH district 
+filter(tmp, District == "KSH") %>%
+  ggplot()+
+  geom_bar(aes(x = cw_bin, y = num_crab, fill = Sex), stat = "identity", color = "black")+
+  labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
+  scale_fill_manual(values = cb_palette[4:6])+
+  scale_x_continuous(breaks = seq(0, 250, 30))+
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = F) -> x
+ggsave("./figures/observer_data_report/2020/tanner_size_KSH.png", plot = x,
+       height = 8, width = 6, units = "in")
+### KSW district 
+filter(tmp, District == "KSW") %>%
+  ggplot()+
+  geom_bar(aes(x = cw_bin, y = num_crab, fill = Sex), stat = "identity", color = "black")+
+  labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
+  scale_fill_manual(values = cb_palette[4:6])+
+  scale_x_continuous(breaks = seq(0, 250, 30))+
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = F) -> x
+ggsave("./figures/observer_data_report/2020/tanner_size_KSW.png", plot = x,
+       height = 8, width = 6, units = "in")
+### KSE district 
+filter(tmp, District == "KSE") %>%
+  ggplot()+
+  geom_bar(aes(x = cw_bin, y = num_crab, fill = Sex), stat = "identity", color = "black")+
+  labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
+  scale_fill_manual(values = cb_palette[4:6])+
+  scale_x_continuous(breaks = seq(0, 250, 30))+
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+ggsave("./figures/observer_data_report/2020/tanner_size_KSE.png", plot = x,
+       height = 4, width = 3, units = "in")
 
 
 # discards ----

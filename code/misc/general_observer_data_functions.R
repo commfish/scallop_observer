@@ -36,6 +36,15 @@ f_bycatch_rename <- function(x){
   x
 }
 
+# rename crab_size data to appropriate style
+# args:
+## x - crab size data (as downloaded directly from wiki)
+f_crab_size_rename <- function(x){
+  names(x) <- c("Fishery", "District", "RACE_code", "sex", "cw", "samp_frac")
+  x
+}
+
+
 # rename shell_height data to appropriate style
 # args:
 ## x - shell height data (as downloaded directly from wiki)
@@ -183,18 +192,25 @@ f_extent_catch <- function(x, quant = 0.9){
 ### args:
 ### x - catch data to standardize containing fields for covariates. Must include 
 ### 'Season', 'Bed', 'Vessel', 'Month', 'depth', 'set_lon'.
-### path - file path to save plots
+### path - file path to save plots. Optional, if provided, function saves effect plots of Month, Season, Bed, and Vessel
 ### by - level to summarise standardized coue over. "Season" or "Bed"
 ### Outputs a point estimate for each season and effects plots of Season, Bed, 
 ### Vessel, and Month
 f_standardize_cpue <- function(x, path, by){
-  # cut off prefix of season for plotting
-  x$Season <- factor(substring(x$Season, 3, 4))
+  
+  x %>%
+    # filter for only satisfacory dredges
+    filter(gear_perf == 1) %>% 
+    # compute cpue by dredge
+    # cut off prefix of season for plotting
+    mutate(rw_cpue = round_weight / dredge_hrs,
+           Season = factor(substring(Season, 3, 4))) -> y
+
   # create cpue modifer
-  adj <- mean(x$rw_cpue, na.rm = T)
+  adj <- mean(y$rw_cpue, na.rm = T)
   # fit model
   mod <- bam(rw_cpue + adj ~ s(depth, k = 4, by = Bed) + s(set_lon, by = Bed) + 
-              Month + Vessel + Season * Bed, data = x, gamma = 1.4, 
+              Month + Vessel + Season * Bed, data = y, gamma = 1.4, 
               family = Gamma(link = log), select = T)
   # print diagnostics
   mod_viz <- getViz(mod)
@@ -203,8 +219,9 @@ f_standardize_cpue <- function(x, path, by){
                     a.cipoly = list(fill = "light blue")),
         a.respoi = list(size = 0.5),
         a.hist = list(bins = 10)))
+  if(!missing(path)){
   # save vessel, month, Season, and Bed effect
-  n_start <- length(unique(x$Bed)) + length(unique(x$Bed)) + 1
+  n_start <- length(unique(y$Bed)) + length(unique(y$Bed)) + 1
   n_end <- n_start + 3
   ggsave(path, 
          plot = print(plot(mod_viz, allTerms = F, select = (n_start:n_end))+ 
@@ -214,13 +231,14 @@ f_standardize_cpue <- function(x, path, by){
                       geom_hline(yintercept = 0, linetype = 2)+
                       theme_sleek(), pages = 1), 
         height = 4, width = 6, units = "in")
+  }
   # compute standardized cpue
-  expand_grid(Season = unique(x$Season), 
-              Month = unique(x$Month),
-              Bed = unique(x$Bed),
-              Vessel = unique(x$Vessel)) %>%
+  expand_grid(Season = unique(y$Season), 
+              Month = unique(y$Month),
+              Bed = unique(y$Bed),
+              Vessel = unique(y$Vessel)) %>%
     # set depth as mode of depth, and set_lon as mean of set_lon
-    left_join(x %>%
+    left_join(y %>%
                 group_by(Bed) %>%
                 summarise(depth = mode(depth),
                           set_lon = mean(set_lon, na.rm = T)),
@@ -228,7 +246,7 @@ f_standardize_cpue <- function(x, path, by){
   # add weights for averaging cpue
   if(by == "Season"){
     tmp %>%
-      left_join(x %>%
+      left_join(y %>%
                   group_by(Season, Bed, Month, Vessel) %>%
                   summarise(n = n()) %>%
                   group_by(Season) %>%
@@ -245,10 +263,18 @@ f_standardize_cpue <- function(x, path, by){
                              as.numeric(as.character(Season)) + 2000,
                              as.numeric(as.character(Season)) + 1900),
              Season = paste0(Season, "/", substring(Season + 1, 3, 4))) %>%
+      # join with nominal cpue
+      left_join(x %>%
+                  group_by(Season) %>%
+                  summarise(nom_cpue = sum(round_weight, na.rm = T) / sum(dredge_hrs, na.rm = T),
+                            nom_cpue_median = median(round_weight / dredge_hrs, na.rm = T),
+                            nom_cpue_sd = sd(round_weight / dredge_hrs, na.rm = T)),
+                by = "Season") %>%
+      dplyr::select(Season, nom_cpue, nom_cpue_median, nom_cpue_sd, std_cpue) %>%
       as_tibble(.)
   } else{if(by == "Bed"){
     tmp %>%
-      left_join(x %>%
+      left_join(y %>%
                   group_by(Season, Bed, Month, Vessel) %>%
                   summarise(n = n()) %>%
                   group_by(Season, Bed) %>%
@@ -266,6 +292,15 @@ f_standardize_cpue <- function(x, path, by){
                              as.numeric(as.character(Season)) + 2000,
                              as.numeric(as.character(Season)) + 1900),
              Season = paste0(Season, "/", substring(Season + 1, 3, 4))) %>%
+      # join with nominal cpue
+      left_join(x %>%
+                  group_by(Season, Bed) %>%
+                  summarise(nom_cpue = sum(round_weight, na.rm = T) / sum(dredge_hrs, na.rm = T),
+                            nom_cpue_median = median(round_weight / dredge_hrs, na.rm = T),
+                            nom_cpue_sd = sd(round_weight / dredge_hrs, na.rm = T)),
+                by = c("Season", "Bed")) %>%
+      
+      dplyr::select(Season, Bed, nom_cpue, nom_cpue_median, nom_cpue_sd, std_cpue) %>%
       as_tibble(.)
     }
   }
