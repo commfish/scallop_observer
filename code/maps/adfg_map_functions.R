@@ -1,5 +1,5 @@
 # notes ----
-## prepare a shapefile for mapping in ggplot2
+## miscellaneous custom functions for map making 
 ## Tyler Jackson
 ## tyler.jackson@alaska.gov
 ## sources: 
@@ -62,6 +62,7 @@ f_albers_to_nad83 <- function(x, longitude = "long", latitude = "lat"){
 ### join - optional. The data frame to join to grid data containing values to fill grid. Must 
 ###        contain columns 'lat' and 'long'.
 ### values - names of column in 'join' data frame containing values to fill grid
+## note : if data is missing latitude and longitude information, it is removed without warning
 f_make_grid <- function(lat, long, by, join, values){
   # make the empty grid
   expand_grid(long = seq(long[1], long[2], by[1]),
@@ -75,25 +76,27 @@ f_make_grid <- function(lat, long, by, join, values){
     fortify(., region = "id") -> x
   x %>%
     group_by(id) %>%
-    select(-order) %>%
+    dplyr::select(-order) %>%
     distinct() %>%
     summarise(cent_long = mean(long),
               cent_lat = mean(lat)) -> x_tmp
   x_tmp %>%
     right_join(x, by = "id") %>%
-    select(long, lat, order, hole, piece, group, id, cent_long, cent_lat) -> x
+    dplyr::select(long, lat, order, hole, piece, group, id, cent_long, cent_lat) -> x
   # join with fill data
   if(!missing(join)){
     join %>%
-      select(long, lat) %>%
+      dplyr::select(long, lat) %>%
+      drop_na() %>%
       as.matrix(.) %>%
-      spDists(., y = as.matrix(select(x_tmp, 2, 3))) %>%
+      spDists(., y = as.matrix(dplyr::select(x_tmp, 2, 3))) %>%
       as_tibble() -> tmp
     names(tmp) <- x_tmp$id
     nn <- apply(tmp, 1, function(x){names(which.min(x))})
     join %>%
+      filter(!is.na(long), !is.na(lat)) %>%
       bind_cols(id = nn) %>%
-      select(id, values) %>%
+      dplyr::select(id, values) %>%
       group_by(id) %>%
       mutate_at(2, sum) %>%
       distinct %>%
@@ -102,8 +105,4 @@ f_make_grid <- function(lat, long, by, join, values){
   } else {x}
 }
 
-
-long <- c(2, 100)
-lat <- c(40, 45)
-by = c(2, 0.5)
 
