@@ -50,7 +50,9 @@ bycatch <- do.call(bind_rows,
 crab_size <- do.call(bind_rows,
                      lapply(paste0("data/crab_size/", list.files("data/crab_size/")), read_csv))
 
-
+### shell height meat weight data 
+meat <- do.call(bind_rows,
+                     lapply(paste0("data/meat_weight/", list.files("data/meat_weight/")), read_csv))
 
 # data mgmt ----
 
@@ -100,6 +102,18 @@ f_shell_height_rename(shell_height) %>%
 f_add_season() %>%
 ## revise District as in catch data
 mutate(District = catch$District[match(.$Haul_ID, catch$Haul_ID)]) -> shell_height
+
+## add season to meat weight data
+f_add_season(meat, fishery_col = "fishery") %>%
+## rename trip_id and haul_id to join to catch
+rename(Trip_ID = trip_id,
+       Haul_ID = haul_id) %>%
+## join with catch data to get location (district, bed)
+left_join(catch %>%
+            dplyr::select(Trip_ID, Haul_ID, District, bed_code, set_lat, set_lon),
+          by = c("Trip_ID", "Haul_ID")) %>%
+## add retained - discard factor 
+mutate(Type = ifelse(shell_num < 11, "retained", "discarded")) -> meat
   
 # fishery catch ----
 
@@ -395,6 +409,7 @@ f_base_map +
   KSW_proj -> x
 ggsave("./figures/observer_data_report/2020/all_yr_dredge_map_KSW.png", plot = x,
        height = 4, width = 4, units = "in")
+
 ### area M
 f_base_map +
   geom_point(data = filter(tmp, District %in% c("WC", "C", "UB")), 
@@ -604,7 +619,7 @@ f_base_map+
   facet_wrap(~Season, nrow = 4, drop = T)+ 
   theme(legend.position = "right") -> x
 ggsave("./figures/observer_data_report/2020/effort_map_YAK.png", plot = x, 
-       height = 8, width = 7, unit = "in")
+       height = 6, width = 7, unit = "in")
 
 
 
@@ -785,7 +800,7 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[c(1, 2, 4)])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_KNE.png", plot = x,
        height = 6, width = 7, units = "in")   
 
@@ -809,7 +824,7 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[1:4])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_KSH.png", plot = x,
        height = 8, width = 7, units = "in") 
 
@@ -833,7 +848,7 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[1:4])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_KSW.png", plot = x,
        height = 8, width = 7, units = "in") 
 
@@ -841,7 +856,7 @@ ggsave("./figures/observer_data_report/2020/bycatch_totals_KSW.png", plot = x,
 ### UB bycatch summary table
 tmp %>%
   filter(District == "UB") %>%
-  select(Season, ghl, tanner_cbl, snow_cbl, total_tanner, tanner_ratio, total_snow, snow_ratio,
+  select(Season, ghl, tanner_cbl, total_tanner, tanner_ratio, total_snow, snow_ratio,
          total_king, king_ratio,  total_dungeness, dungeness_ratio, total_halibut, halibut_ratio) %T>%
   write_csv("./output/observer_summary/2020/bycatch_summary_UB.csv") %>%
   # remove dungeness crab
@@ -858,7 +873,7 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[1:5])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_UB.png", plot = x,
        height = 8, width = 7, units = "in")
 ### O bycatch summary table
@@ -881,7 +896,7 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[1:4])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_O.png", plot = x,
        height = 8, width = 7, units = "in")
 
@@ -906,15 +921,15 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[1:5])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_Q.png", plot = x,
        height = 8, width = 7, units = "in")
 
 ### YAK bycatch summary table
 tmp %>%
   filter(District == "YAK") %>%
-  select(Season, ghl, tanner_cbl, total_tanner, tanner_ratio, total_king, king_ratio,  total_dungeness,
-         dungeness_ratio, total_halibut, halibut_ratio) %T>%
+  select(Season, ghl, total_tanner, tanner_ratio, total_king, king_ratio,  total_dungeness,
+         dungeness_ratio, total_king, king_ratio, total_halibut, halibut_ratio) %T>%
   write_csv("./output/observer_summary/2020/bycatch_summary_YAK.csv") %>%
   # plot by annual totals in YAK by species
   pivot_longer(c(grep("total", names(.))), names_to = "species", values_to = "total") %>%
@@ -930,7 +945,7 @@ tmp %>%
   labs(x = NULL, y = "Total catch (count)", color = NULL)+
   scale_color_manual(values = cb_palette[1:4])+
   facet_wrap(~Species, scales = "free_y", ncol = 1)+
-  theme(legend.position = "bottom") -> x
+  theme(legend.position = "none") -> x
 ggsave("./figures/observer_data_report/2020/bycatch_totals_YAK.png", plot = x,
        height = 8, width = 7, units = "in") 
 
@@ -954,12 +969,12 @@ bycatch %>%
          tanner_catch = tanner_rate * dredge_hrs) %>%
   summarise(tanner_catch = sum(tanner_catch),
             mt_wt = sum(mt_wt)) %>%
-  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
+  filter(District %in% c("KNE", "KSH", "KSW", "KSE", "KSEM")) %>%
   ggplot(aes(x = Season, y = tanner_catch / mt_wt, 
              group = District, color = District))+
   geom_point()+
   geom_line()+
-  scale_colour_manual(values = cb_palette[1:4])+
+  scale_colour_manual(values = cb_palette[1:5])+
   labs(x = NULL, y = "Bycatch Ratio \n (Tanner crab : lbs scallop meat)", color = NULL)+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/tanner_bycatch_ratio_area_K.png", plot = x,
@@ -990,6 +1005,31 @@ bycatch %>%
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/tanner_bycatch_ratio_area_M.png", plot = x,
        height = 3, width = 7, units = "in") 
+### UB
+bycatch %>%
+  # summarise variables by day
+  group_by(Season, District, Set_date) %>%
+  summarise(dredge_hrs = sum(dredge_hrs), 
+            sample_hrs = sum(sample_hrs),
+            mt_wt = sum(mt_wt),
+            bairdi_count = sum(bairdi_count)) %>%
+  # compute tanner catch rate (unsampled days get yearly total)
+  group_by(Season, District) %>%
+  mutate(tanner_rate = ifelse(sample_hrs == 0,
+                              sum(bairdi_count) / sum(sample_hrs),
+                              bairdi_count / sample_hrs),
+         tanner_catch = tanner_rate * dredge_hrs) %>%
+  summarise(tanner_catch = sum(tanner_catch),
+            mt_wt = sum(mt_wt)) %>%
+  filter(District %in% c("UB")) %>%
+  ggplot(aes(x = Season, y = tanner_catch / mt_wt, group = 1))+
+  geom_point(color = cb_palette[1])+
+  geom_line(color = cb_palette[1])+
+  labs(x = NULL, y = "Bycatch Ratio \n (Tanner crab : lbs scallop meat)", color = NULL)+
+  theme(legend.position = "bottom") -> x
+ggsave("./figures/observer_data_report/2020/tanner_bycatch_ratio_UB.png", plot = x,
+       height = 3, width = 7, units = "in")
+
 ### area O
 bycatch %>%
   # summarise variables by day
@@ -1048,6 +1088,7 @@ bycatch %>%
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/tanner_bycatch_ratio_area_Q.png", plot = x,
        height = 3, width = 7, units = "in") 
+
 ### YAK
 bycatch %>%
   # summarise variables by day
@@ -1055,24 +1096,39 @@ bycatch %>%
   summarise(dredge_hrs = sum(dredge_hrs), 
             sample_hrs = sum(sample_hrs),
             mt_wt = sum(mt_wt),
-            bairdi_count = sum(bairdi_count)) %>%
+            bairdi_count = sum(bairdi_count),
+            dungeness_count = sum(dungeness_count),
+            halibut_count = sum(halibut_count)) %>%
   # compute tanner catch rate (unsampled days get yearly total)
   group_by(Season, District) %>%
   mutate(tanner_rate = ifelse(sample_hrs == 0,
                               sum(bairdi_count) / sum(sample_hrs),
                               bairdi_count / sample_hrs),
-         tanner_catch = tanner_rate * dredge_hrs) %>%
-  summarise(tanner_catch = sum(tanner_catch),
+         tanner_catch = tanner_rate * dredge_hrs,
+         dungeness_rate = ifelse(sample_hrs == 0,
+                              sum(dungeness_count) / sum(sample_hrs),
+                              dungeness_count / sample_hrs),
+         dungeness_catch = dungeness_rate * dredge_hrs,
+         halibut_rate = ifelse(sample_hrs == 0,
+                              sum(halibut_count) / sum(sample_hrs),
+                              halibut_count / sample_hrs),
+         halibut_catch = halibut_rate * dredge_hrs) %>%
+  summarise(`Tanner crab` = sum(tanner_catch),
+            `Dungeness crab` = sum(dungeness_catch),
+            `Pacific Halibut`= sum(halibut_catch),
             mt_wt = sum(mt_wt)) %>%
   filter(District %in% c("YAK")) %>%
-  ggplot(aes(x = Season, y = tanner_catch / mt_wt, 
-             group = District))+
-  geom_point(color = cb_palette[1])+
-  geom_line(color = cb_palette[1])+
-  labs(x = NULL, y = "Bycatch Ratio \n (Tanner crab : lbs scallop meat)", color = NULL)+
-  theme(legend.position = "bottom") -> x
-ggsave("./figures/observer_data_report/2020/tanner_bycatch_ratio_area_YAK.png", plot = x,
-       height = 3, width = 7, units = "in") 
+  pivot_longer(c("Tanner crab", "Dungeness crab", "Pacific Halibut"), names_to = "Species", values_to = "catch") %>%
+  mutate(Species = factor(Species, levels = c("Tanner crab", "Dungeness crab", "Pacific Halibut"))) %>%
+  ggplot(aes(x = Season, y = catch / mt_wt, group = Species, color = Species))+
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values = cb_palette[1:3])+
+  labs(x = NULL, y = "Bycatch Ratio (count : lbs scallop meat)", color = NULL)+
+  facet_wrap(~Species, ncol = 1, scales = "free_y")+
+  theme(legend.position = "none") -> x
+ggsave("./figures/observer_data_report/2020/bycatch_ratio_YAK.png", plot = x,
+       height = 7, width = 7, units = "in") 
 
 
 ## daily bycatch of Tanner crab
@@ -1110,7 +1166,7 @@ ghl_cbl_remain %>%
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2)+
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KNE.png", plot = x,
        height = 6, width = 6, units = "in")
@@ -1122,7 +1178,7 @@ ghl_cbl_remain %>%
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2)+
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSH.png", plot = x,
        height = 6, width = 6, units = "in")
@@ -1134,7 +1190,7 @@ ghl_cbl_remain %>%
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2)+
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_KSW.png", plot = x,
        height = 6, width = 6, units = "in")
@@ -1146,7 +1202,7 @@ ghl_cbl_remain %>%
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = seq(-2, 1, 0.5), limits = c(-2, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2)+
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_UB.png", plot = x,
        height = 6, width = 6, units = "in")
@@ -1158,7 +1214,7 @@ ghl_cbl_remain %>%
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2)+
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_O.png", plot = x,
        height = 6, width = 6, units = "in")
@@ -1170,7 +1226,7 @@ ghl_cbl_remain %>%
   scale_color_manual(values = cb_palette[1:2], labels = c("Tanner CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2)+
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_YAK.png", plot = x,
        height = 6, width = 6, units = "in")
@@ -1215,7 +1271,7 @@ bycatch %>%
   scale_color_manual(values = cb_palette[c(1, 3, 2)], labels = c("Tanner CBL", "Snow CBL", "GHL"))+
   labs(x = NULL, y =  "Percent Remaining", color = NULL)+
   scale_y_continuous(breaks = c(0, 0.25, 0.5, 0.75, 1), limits = c(-0.05, 1.05))+
-  facet_wrap(~Season, scales = "free", ncol = 2) -> x
+  facet_wrap(~Season, scales = "free", ncol = 2, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/daily_tanner_cbl_Q.png", plot = x,
        height = 6, width = 6, units = "in")
 
@@ -1234,7 +1290,7 @@ filter(tmp, District == "KNE") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_KNE.png", plot = x,
       height = 8, width = 6, units = "in")
 ### KSH district 
@@ -1244,7 +1300,7 @@ filter(tmp, District == "KSH") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_KSH.png", plot = x,
        height = 8, width = 6, units = "in")
 ### KSW district 
@@ -1254,7 +1310,7 @@ filter(tmp, District == "KSW") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_KSW.png", plot = x,
        height = 8, width = 6, units = "in")
 ### UB district 
@@ -1264,7 +1320,7 @@ filter(tmp, District == "UB") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_UB.png", plot = x,
        height = 8, width = 6, units = "in")
 ### O district 
@@ -1274,7 +1330,7 @@ filter(tmp, District == "O") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_O.png", plot = x,
        height = 8, width = 6, units = "in")
 ### YAK district 
@@ -1284,7 +1340,7 @@ filter(tmp, District == "YAK") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_YAK.png", plot = x,
        height = 8, width = 6, units = "in")
 ### Q district 
@@ -1295,7 +1351,7 @@ filter(tmp, District == "Q", Species == "Tanner crab") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/tanner_size_Q.png", plot = x,
        height = 8, width = 6, units = "in")
 #### snow crab
@@ -1305,7 +1361,7 @@ filter(tmp, District == "Q", Species == "snow crab") %>%
   labs(x = "Carapace width (mm)", y = "Number of crab", fill = NULL) +
   scale_fill_manual(values = cb_palette[4:6])+
   scale_x_continuous(breaks = seq(0, 250, 30))+
-  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T) -> x
+  facet_wrap(~Season, ncol = 2, scales = "free_y", drop = T, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/snow_size_Q.png", plot = x,
        height = 8, width = 6, units = "in")
 
@@ -1314,7 +1370,7 @@ ggsave("./figures/observer_data_report/2020/snow_size_Q.png", plot = x,
 ### compute discard lbs and number
 #### area K
 bycatch %>%
-  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
+  filter(District %in% c("KNE", "KSH", "KSW", "KSE", "KSEM")) %>%
   group_by(Season, District) %>%
   summarise(effort = sum(dredge_hrs),
             discard_rate_lb = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
@@ -1328,7 +1384,7 @@ tmp %>%
   geom_point()+
   geom_line()+
   scale_y_continuous(labels = comma)+
-  scale_colour_manual(values = cb_palette[1:4])+
+  scale_colour_manual(values = cb_palette[1:5])+
   labs(x = NULL, y = "Scallop Discards (lbs)")+
   theme(legend.position = "none") -> x
 ### save plot of number
@@ -1336,7 +1392,7 @@ tmp %>%
   ggplot(aes(x = Season, y = discard_num, color = District, group = District))+
   geom_point()+
   geom_line()+
-  scale_colour_manual(values = cb_palette[1:4])+
+  scale_colour_manual(values = cb_palette[1:5])+
   labs(x = NULL, y = "Scallop Discards (count)", color = NULL)+
   theme(legend.position = "bottom") -> y
 ## combine plots
@@ -1466,170 +1522,141 @@ ggsave("./figures/observer_data_report/2020/scallop_discards_area_YAK.png",
 
 
 ### export tables by district
-#### summarise round weight by season and district
+bycatch %>%
+  group_by(Season, District) %>%
+  summarise(effort = sum(dredge_hrs),
+            discard_rate_lb = sum(disc_wt, broken_wt, rem_disc_wt) / sum(sample_hrs),
+            discard_lb = discard_rate_lb * effort,
+            disc_per_lb = sum(disc_count) / sum(disc_wt, broken_wt),
+            discard_rate_num = (sum(disc_count) + disc_per_lb * sum(rem_disc_wt)) / sum(sample_hrs),
+            discard_num = discard_rate_num * effort) -> tmp
+# join discard info to catch
 catch %>%
   group_by(Season, District) %>%
   summarise(round_weight = sum(round_weight, na.rm = T)) %>%
   # join with 'tmp' (discard estimates)
   right_join(tmp, by = c("District", "Season")) %>%
   # compute discard lbs ratio and overwrite object 'tmp'
-  mutate(discard_ratio = discard_lb / round_weight) -> tmp
+  mutate(discard_ratio = discard_lb / round_weight,
+         discard_M_lbs = discard_lb * 0.2,
+         discard_M_num = discard_num * 0.2) -> tmp
 #### KNE
 tmp %>%
   filter(District == "KNE") %>%
   dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-         discard_rate_lb, discard_rate_num) %>%
+         discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
   write_csv("./output/observer_summary/2020/discard_summary_KNE.csv")
 #### KSH
 tmp %>%
   filter(District == "KSH") %>%
   dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-         discard_rate_lb, discard_rate_num) %>%
+         discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
   write_csv("./output/observer_summary/2020/discard_summary_KSH.csv")
 #### KSW
 tmp %>%
   filter(District == "KSW") %>%
   dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-         discard_rate_lb, discard_rate_num) %>%
+         discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
   write_csv("./output/observer_summary/2020/discard_summary_KSW.csv")
 #### KSE
 tmp %>%
   filter(District == "KSE") %>%
   dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-         discard_rate_lb, discard_rate_num) %>%
+         discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
   write_csv("./output/observer_summary/2020/discard_summary_KSE.csv")
+#### area K discrad ratio plot
+tmp %>% 
+  filter(District %in% c("KNE", "KSH", "KSW", "KSE", "KSEM")) %>%
+  mutate(District = factor(District, levels = c("KNE", "KSH", "KSW", "KSE", "KSEM"))) %>%
+  ggplot(aes(x = Season, y = discard_ratio, 
+             group = District, color = District))+
+  geom_point()+
+  geom_line()+
+  scale_colour_manual(values = cb_palette[1:5])+
+  labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
+  theme(legend.position = "bottom") -> x
+ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_K.png", plot = x,
+       height = 3, width = 7, units = "in") 
+
 #### UB
 tmp %>%
   filter(District == "UB") %>%
   dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-         discard_rate_lb, discard_rate_num) %>%
+         discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>% 
   write_csv("./output/observer_summary/2020/discard_summary_UB.csv")
 #### C
 tmp %>%
   filter(District == "C") %>%
   dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-         discard_rate_lb, discard_rate_num) %>%
+         discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
   write_csv("./output/observer_summary/2020/discard_summary_C.csv")
-#### O
-tmp %>%
-  filter(District == "O") %>%
-  dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-                discard_rate_lb, discard_rate_num) %>%
-  write_csv("./output/observer_summary/2020/discard_summary_O.csv")
-#### Q
-tmp %>%
-  filter(District == "Q") %>%
-  dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-                discard_rate_lb, discard_rate_num) %>%
-  write_csv("./output/observer_summary/2020/discard_summary_Q.csv")
-#### YAK
-tmp %>%
-  filter(District == "YAK") %>%
-  dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
-                discard_rate_lb, discard_rate_num) %>%
-  write_csv("./output/observer_summary/2020/discard_summary_YAK.csv")
-
-## discard ratio, round weight and num animals
-### area K
-bycatch %>%
-  filter(sample_hrs != 0,
-         District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            sample_hrs = sum(sample_hrs),
-            round_weight = sum(est_rnd_wt),
-            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
-            tot_disc = disc_lbs / sample_hrs * effort,
-            ratio = tot_disc / round_weight) %>%
-  ggplot(aes(x = Season, y = ratio, 
+#### area M discrad ratio plot
+tmp %>% 
+  filter(District %in% c("UB", "C", "WC")) %>%
+  mutate(District = factor(District, levels = c("UB", "C", "WC")),
+         discard_ratio = ifelse(round_weight == 0, NA, discard_ratio)) %>%
+  ggplot(aes(x = Season, y = discard_ratio, 
              group = District, color = District))+
   geom_point()+
   geom_line()+
-  scale_colour_manual(values = cb_palette[1:4])+
+  scale_colour_manual(values = cb_palette[1:3])+
   labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_K.png", plot = x,
        height = 3, width = 7, units = "in") 
-### area M
-bycatch %>%
-  filter(sample_hrs != 0,
-         District %in% c("WC", "C", "UB")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            sample_hrs = sum(sample_hrs),
-            round_weight = sum(est_rnd_wt),
-            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
-            tot_disc = disc_lbs / sample_hrs * effort,
-            ratio = tot_disc / round_weight) %>%
-  ggplot(aes(x = Season, y = ratio, 
-             group = District, color = District))+
-  geom_point()+
-  geom_line()+
-  scale_colour_manual(values = cb_palette[1:4])+
-  labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
-  theme(legend.position = "bottom") -> x
-ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_M.png", plot = x,
-       height = 3, width = 7, units = "in") 
-### area O
-bycatch %>%
-  filter(sample_hrs != 0,
-         District %in% c("O")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            sample_hrs = sum(sample_hrs),
-            round_weight = sum(est_rnd_wt),
-            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
-            tot_disc = disc_lbs / sample_hrs * effort,
-            ratio = tot_disc / round_weight) %>%
-  ggplot(aes(x = Season, y = ratio, 
-             group = 1))+
+
+#### O
+tmp %>%
+  filter(District == "O") %>%
+  dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+                discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
+  write_csv("./output/observer_summary/2020/discard_summary_O.csv")
+#### area O discrad ratio plot
+tmp %>%
+  filter(District == "O") %>%
+  mutate(discard_ratio = ifelse(round_weight == 0, NA, discard_ratio)) %>%
+  ggplot(aes(x = Season, y = discard_ratio, group = 1))+
   geom_point(color = cb_palette[1])+
   geom_line(color = cb_palette[1])+
-  scale_colour_manual(values = cb_palette[1:4])+
   labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_O.png", plot = x,
        height = 3, width = 7, units = "in") 
-### area Q
-bycatch %>%
-  filter(sample_hrs != 0,
-         District %in% c("Q")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            sample_hrs = sum(sample_hrs),
-            round_weight = sum(est_rnd_wt),
-            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
-            tot_disc = disc_lbs / sample_hrs * effort,
-            ratio = tot_disc / round_weight) %>%
-  ggplot(aes(x = Season, y = ratio, 
-             group = 1))+
+
+#### Q
+tmp %>%
+  filter(District == "Q") %>%
+  dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+                discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
+  write_csv("./output/observer_summary/2020/discard_summary_Q.csv")
+#### area Q discrad ratio plot
+tmp %>%
+  filter(District == "Q") %>%
+  ggplot(aes(x = Season, y = discard_ratio, group = 1))+
   geom_point(color = cb_palette[1])+
   geom_line(color = cb_palette[1])+
-  scale_colour_manual(values = cb_palette[1:4])+
   labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_Q.png", plot = x,
        height = 3, width = 7, units = "in")
-### area YAK
-bycatch %>%
-  filter(sample_hrs != 0,
-         District %in% c("YAK")) %>%
-  group_by(Season, District) %>%
-  summarise(effort = sum(dredge_hrs),
-            sample_hrs = sum(sample_hrs),
-            round_weight = sum(est_rnd_wt),
-            disc_lbs = sum(disc_wt, broken_wt, rem_disc_wt),
-            tot_disc = disc_lbs / sample_hrs * effort,
-            ratio = tot_disc / round_weight) %>%
-  ggplot(aes(x = Season, y = ratio, 
-             group = 1))+
+
+
+#### YAK
+tmp %>%
+  filter(District == "YAK") %>%
+  dplyr::select(Season, round_weight, discard_lb, discard_num, discard_ratio, 
+                discard_rate_lb, discard_rate_num, discard_M_lbs, discard_M_num) %T>%
+  write_csv("./output/observer_summary/2020/discard_summary_YAK.csv")
+tmp %>%
+  filter(District == "YAK") %>%
+  ggplot(aes(x = Season, y = discard_ratio, group = 1))+
   geom_point(color = cb_palette[1])+
   geom_line(color = cb_palette[1])+
-  scale_colour_manual(values = cb_palette[1:4])+
   labs(x = NULL, y = "Discard Ratio \n (Round lbs discarded : retained)")+
   theme(legend.position = "bottom") -> x
 ggsave("./figures/observer_data_report/2020/scallop_discard_ratio_area_YAK.png", plot = x,
        height = 3, width = 7, units = "in")
+
 
 
 
@@ -1666,7 +1693,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_KNE.png", plot = x,
        height = 6, width = 7, units = "in")
 # KSH
@@ -1677,7 +1704,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_KSH.png", plot = x,
        height = 6, width = 7, units = "in")
 # KSW
@@ -1688,7 +1715,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_KSW.png", plot = x,
        height = 6, width = 7, units = "in")
 # KSE
@@ -1699,7 +1726,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_KSE.png", plot = x,
        height = 6, width = 7, units = "in")
 # UB
@@ -1710,7 +1737,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_UB.png", plot = x,
        height = 6, width = 7, units = "in")
 # C
@@ -1721,7 +1748,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_C.png", plot = x,
        height = 6, width = 7, units = "in")
 # area M
@@ -1732,7 +1759,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_area_M.png", plot = x,
        height = 6, width = 7, units = "in")
 # area O
@@ -1743,7 +1770,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_O.png", plot = x,
        height = 6, width = 7, units = "in")
 # area Q
@@ -1754,7 +1781,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_Q.png", plot = x,
        height = 6, width = 7, units = "in")
 # area YAK
@@ -1765,7 +1792,7 @@ tmp %>%
                  binwidth = 5, color = "black")+
   scale_fill_manual(values = cb_palette[2:3], labels = c("Discarded", "Retained"))+
   labs(x = "Shell height (mm)", y = "Weighted Density", fill = NULL)+
-  facet_wrap(~Season, ncol = 3) -> x
+  facet_wrap(~Season, ncol = 3, dir = "v") -> x
 ggsave("./figures/observer_data_report/2020/sh_comp_YAK.png", plot = x,
        height = 6, width = 7, units = "in")
 
@@ -1774,47 +1801,63 @@ ggsave("./figures/observer_data_report/2020/sh_comp_YAK.png", plot = x,
 
 
 
-# area K ----
-
-## plot meat weight ~ 10% round weight
-catch %>%
-  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
-  group_by(Season, District) %>%
-  summarise(meat_weight = sum(meat_weight),
-            round_weight = sum(round_weight * 0.10)) %>%
-  pivot_longer(c(3, 4), names_to = "type", values_to = "weight") %>%
-  ggplot(aes(x = Season, y = weight, group = type, linetype = type, shape = type))+
-  scale_linetype_manual(values = c(1, 2), 
-                        labels = c("Meat Weight", "10% Round Weight"))+
-  scale_shape_manual(values = c(16, 1), 
-                     labels = c("Meat Weight", "10% Round Weight"))+
-  geom_point()+
-  geom_line()+
-  labs(x = NULL, y = "Annual Catch (lbs)", linetype = NULL, shape = NULL)+
-  facet_wrap(~District, scales = "free_y")+
-  theme(legend.position = "bottom",
-        axis.text.x = element_text(angle = 90, vjust = 0.5)) -> x
-ggsave("./figures/observer_data_report/2020/annual_catch_area_K.png", 
-       plot = x, height = 5, width = 6, units = "in")
-
-  
 
 
 
 
+# meat weight ~ round weight ----
 
-## interannual trend in nominal meat weight cpue, all districts
-catch %>%
-  filter(District %in% c("KNE", "KSH", "KSW", "KSE")) %>%
-  group_by(Season, District) %>%
-  summarise(mw_cpue = sum(meat_weight, na.rm = T) / sum(dredge_hrs, na.rm = T)) %>%
+## plot meat weight ~ shell height by district
+### Area K
+#### fit model to linearized data without random effect
+meat %>%
+  filter(District %in% c("KNE", "KSH", "KSW", "KSE", "KSEM"),
+         Type == "retained",
+         !is.na(shell_height), !is.na(meat_weight)) -> k_mw
+lm(log(meat_weight) ~ log(shell_height) * Season, data = k_mw) -> k_lm
+#### fit model to linearized data with random effect
+nlme::lme(log(meat_weight) ~ log(shell_height) * Season, random = ~1 |District, data = k_mw, method = "ML") -> k_lme
+#### compare models
+AIC(k_lm, k_lme) # use k_lme
+#### refit k_lme using REML
+nlme::lme(log(meat_weight) ~ log(shell_height) * Season, random = ~1 |District, data = k_mw, method = "REML") -> k_lme
+plot(k_lme)
+#### create a table with coefficients and export
+# alpha
+a <- as.numeric(k_lme$coefficients$fixed[c(1,3)])
+a[2] <- a[1] + a[2]
+# beta
+b <- as.numeric(k_lme$coefficients$fixed[c(2,4)])
+b[2] <- b[1] + b[2]
+# write table
+tibble(Season = c("2018/19", "2019/20"),
+       alpha = a,
+       beta = b) %T>%
+  write_csv("./output/observer_summary/2020/mw_sh_coefs_area_K.csv")
+# plot
+## create fitted data for line
+k_mw  %>%
+  mutate(fit_mw = predict(k_lme)) %>%
   ggplot()+
-  geom_point(aes(x = Season, y = mw_cpue, colour = District))+
-  geom_line(aes(x = Season, y = mw_cpue, group = District, colour = District))+
-  labs(y = "Nominal CPUE (meat lbs / dredge hr)", x = NULL)+
-  scale_color_manual(values = cb_palette)+
-  theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+  geom_point(aes(x = shell_height, y = meat_weight, color = Season))+
+  geom_line(aes(x = shell_height, y = exp(fit_mw), color = Season))+
+  scale_color_manual(values = cb_palette[7:6])+
+  labs(x = "Shell Height (mm)", y = "Meat Weight (g)", color = NULL)+
+  facet_wrap(~District) -> x
+ggsave("./figures/observer_data_report/2020/mw_sh_area_K.png", plot = x, height = 5, width = 5, units = "in")
+# plot of random effects
+tibble(District = rownames(ranef(k_lme)),
+       re = ranef(k_lme)[,1]) %>%
+  mutate(District = factor(District, levels = c("KSE", "KSW", "KSH", "KNE"))) %>%
+  ggplot()+
+  geom_point(aes(x = District, y = re))+
+  geom_hline(yintercept = 0, linetype = 2)+
+  scale_y_continuous(limits = c(-0.3, 0.3))+
+  labs(x = NULL, y = "Random Effects")+
+  coord_flip() -> x
+ggsave("./figures/observer_data_report/2020/mw_sh_area_K_ranef.png", plot = x, height = 3, width = 2, units = "in")
 
 
 
+           
 
